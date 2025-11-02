@@ -14,7 +14,7 @@ app.use(express.json());
 
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Hello Asah',
+    message: 'Hello Team Asah A25-CS060!',
     environment: process.env.NODE_ENV || 'production'
   });
 });
