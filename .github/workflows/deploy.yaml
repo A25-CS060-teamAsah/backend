@@ -1,0 +1,59 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Run ESLint
+        run: npm run lint
+        continue-on-error: false
+
+  deploy:
+    name: Deploy to Render
+    needs: lint
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Trigger Render Deploy
+        id: deploy
+        run: |
+          RESPONSE=$(curl -s -o response.txt -w "%{http_code}" -X POST ${{ secrets.RENDER_DEPLOY_HOOK }})
+          if [ $RESPONSE -eq 200 ] || [ $RESPONSE -eq 201 ]; then
+            echo "✅ Deploy triggered successfully!"
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Deploy failed with status code: $RESPONSE"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "## Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** main" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ steps.deploy.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check your [Render Dashboard](https://dashboard.render.com) for deployment progress" >> $GITHUB_STEP_SUMMARY
