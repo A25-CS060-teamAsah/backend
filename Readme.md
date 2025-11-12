@@ -1,514 +1,476 @@
-# Lead Scoring Backend API
+# 🏦 Lead Scoring Backend API
 
-Backend service untuk **Predictive Lead Scoring Portal for Banking** - Capstone Project Team A25-CS060
+**Team A25-CS060** - Predictive Lead Scoring Portal for Banking  
+**Version:** 2.5 (Enhanced with CSV Upload & RBAC)
 
-## 📋 Project Information
+---
 
-- **Team ID**: A25-CS060
-- **Use Case**: AC-03
-- **Program**: Asah by Dicoding x Accenture
+## 📋 Project Overview
 
-## 🚀 Tech Stack
+Backend Express.js untuk memprediksi dan memprioritaskan nasabah bank yang potensial berlangganan deposito berjangka menggunakan Machine Learning.
 
-- **Runtime**: Node.js 20+
-- **Framework**: Express.js 5
-- **Database**: PostgreSQL 15+
-- **Authentication**: JWT (JSON Web Tokens)
-- **Security**: Helmet, CORS
-- **Password Hashing**: bcryptjs
+**Tech Stack:**
+- Express.js 5.x
+- PostgreSQL 14+
+- JWT Authentication
+- Axios (ML Service integration)
+- Multer (File upload)
+- CSV Parser
 
-## 📦 Installation
+---
+
+## ✨ Features
+
+### Authentication & Authorization
+- ✅ JWT-based authentication
+- ✅ Role-Based Access Control (RBAC)
+  - **Admin:** Can register new users + all features
+  - **Sales:** Cannot register users, but all other features available
+  - **Manager:** Same as admin (future use)
+
+**IMPORTANT:** Sales dan Admin punya akses yang SAMA ke semua fitur (CRUD customers, predictions, upload CSV, dll). Perbedaannya HANYA admin bisa register user baru.
+
+### Customer Management
+- ✅ Full CRUD operations (Admin & Sales)
+- ✅ **CSV Bulk Upload** - Import ratusan/ribuan customers (Admin & Sales)
+- ✅ **Advanced Search & Filter:**
+  - Age range (min/max)
+  - Job, education, marital status
+  - Loan status (housing, personal, default)
+  - Text search
+- ✅ Pagination (max 100 per page)
+- ✅ Sorting (multiple columns)
+- ✅ Statistics & analytics
+
+### ML Predictions
+- ✅ Single customer prediction
+- ✅ Batch predictions
+- ✅ Top leads ranking (highest probability score)
+- ✅ Prediction history per customer
+- ✅ Prediction statistics
+
+### Integration
+- ✅ Flask ML Service (LightGBM model)
+- ✅ Automatic preprocessing (14 → 51 features)
+- ✅ Real-time predictions
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
-
-- Node.js >= 20.x
-- PostgreSQL >= 15.x
-- npm or yarn
-
-### Step 1: Clone Repository
-
 ```bash
-git clone <repository-url>
-cd backend
+Node.js 18+
+PostgreSQL 14+
+npm or yarn
 ```
 
-### Step 2: Install Dependencies
+### Installation
 
 ```bash
+# 1. Install dependencies
 npm install
-```
 
-### Step 3: Setup Environment Variables
-
-```bash
+# 2. Setup environment
 cp .env.example .env
-```
+# Edit .env with your config
 
-Edit `.env` file dengan konfigurasi Anda:
+# 3. Create database
+psql -U postgres
+CREATE DATABASE lead_scoring_db;
+\q
 
-```env
-# Server Configuration
-PORT=3000
-HOST=localhost
-NODE_ENV=development
+# 4. Run schema
+psql -U postgres lead_scoring_db < database/schema.sql
 
-# Database Configuration
-DB_USER=postgres
-DB_HOST=localhost
-DB_NAME=lead_scoring_db
-DB_PASSWORD=your_password_here
-DB_PORT=5432
-
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_key_change_in_production
-JWT_EXPIRES_IN=24h
-
-# ML Service Configuration (untuk minggu 2)
-ML_SERVICE_URL=http://localhost:5000
-ML_API_TIMEOUT=10000
-```
-
-### Step 4: Setup Database
-
-#### Buat Database
-
-```bash
-createdb -U postgres lead_scoring_db
-```
-
-#### Run Database Schema
-
-```bash
-psql -U postgres -d lead_scoring_db -f .\database\schema.sql
-```
-
-Atau dengan command:
-
-```bash
-psql lead_scoring_db < database/schema.sql
-```
-
-### Step 5: Seed Database (Optional)
-
-Untuk membuat user dan data sample:
-
-```bash
+# 5. Seed database (creates admin user)
 npm run seed
-```
 
-Default credentials setelah seeding:
-
-- Email: `admin@leadscoring.com` | Password: `password123` (role: admin)
-- Email: `sales1@leadscoring.com` | Password: `password123` (role: sales)
-
-### Step 6: Run Server
-
-**Development mode (with auto-reload):**
-
-```bash
+# 6. Start server
 npm run dev
 ```
 
-**Production mode:**
+**Server:** http://localhost:3000
 
-```bash
-npm start
+---
+
+## 📡 API Endpoints (18 Total)
+
+### Authentication (5)
+```
+POST   /api/v1/auth/login              Login (returns JWT)
+POST   /api/v1/auth/register           Register user (Admin only) ⭐
+GET    /api/v1/auth/me                 Get profile
+POST   /api/v1/auth/logout             Logout
+GET    /api/v1/health                  Health check
 ```
 
-Server akan berjalan di `http://localhost:3000`
+⭐ = Admin only endpoint
+
+### Customers (8) - All Authenticated Users
+```
+GET    /api/v1/customers               List all
+GET    /api/v1/customers/:id           Get by ID
+POST   /api/v1/customers               Create
+PUT    /api/v1/customers/:id           Update
+DELETE /api/v1/customers/:id           Delete
+GET    /api/v1/customers/stats         Statistics
+POST   /api/v1/customers/upload-csv    Upload CSV
+GET    /api/v1/customers/csv-template  Download template
+```
+
+### Predictions (5) - All Authenticated Users
+```
+POST   /api/v1/predictions/customer/:id         Predict single
+POST   /api/v1/predictions/batch                Batch predict
+GET    /api/v1/predictions/top-leads            Top leads
+GET    /api/v1/predictions/stats                Statistics
+GET    /api/v1/predictions/customer/:id/history History
+```
+
+---
+
+## 🔐 RBAC (Role-Based Access Control)
+
+### Simple Rules:
+
+**Admin:**
+- ✅ Can register new users (sales/admin/manager)
+- ✅ All other features (same as sales)
+
+**Sales:**
+- ❌ Cannot register new users
+- ✅ All other features (CRUD customers, predictions, upload CSV, etc)
+
+**Manager:**
+- Same as Admin (for future use)
+
+### Implementation:
+- **Only 1 endpoint** protected: `POST /auth/register` (admin only)
+- **All other endpoints:** Require authentication only (no role check)
+
+---
+
+## 🔧 Environment Variables
+
+```env
+# Server
+PORT=3000
+NODE_ENV=development
+
+# Database
+DB_USER=postgres
+DB_HOST=localhost
+DB_NAME=lead_scoring_db
+DB_PASSWORD=your_password
+DB_PORT=5432
+
+# JWT
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=24h
+
+# ML Service (Flask) - Port 5050
+ML_SERVICE_URL=http://localhost:5050
+ML_API_TIMEOUT=10000
+```
+
+---
+
+## 👥 Default Users (after seed)
+
+```javascript
+// Admin - Can register users + all features
+{
+  email: "admin@leadscoring.com",
+  password: "password123",
+  role: "admin"
+}
+
+// Sales - Cannot register users, but all other features available
+{
+  email: "sales1@leadscoring.com",
+  password: "password123",
+  role: "sales"
+}
+```
+
+---
+
+## 📊 CSV Bulk Upload
+
+### Download Template
+```bash
+GET /api/v1/customers/csv-template
+```
+
+### CSV Format (14 columns required)
+```csv
+age,job,marital,education,default,housing,loan,contact,month,day_of_week,campaign,pdays,previous,poutcome
+30,technician,married,secondary,false,true,false,cellular,may,mon,2,999,0,unknown
+45,management,single,tertiary,false,false,false,telephone,jun,fri,1,999,0,success
+```
+
+### Upload CSV (Admin & Sales)
+```bash
+POST /api/v1/customers/upload-csv
+Content-Type: multipart/form-data
+Authorization: Bearer <token>
+
+Field name: csvfile
+Max size: 10MB
+```
+
+### Response
+```json
+{
+  "success": true,
+  "summary": {
+    "totalRecordsInFile": 100,
+    "validRecords": 95,
+    "invalidRecordsDuringValidation": 5,
+    "successfullyCreated": 94,
+    "failedToCreate": 1
+  },
+  "created": [...],
+  "validationErrors": [...],
+  "insertionErrors": [...]
+}
+```
+
+---
+
+## 🔍 Advanced Search & Filter
+
+```bash
+GET /api/v1/customers?minAge=30&maxAge=50&job=technician&housing=true&page=1&limit=20&sortBy=age&order=DESC
+```
+
+**Query Parameters:**
+- `minAge`, `maxAge` - Age range
+- `job` - Specific job
+- `education` - Education level
+- `marital` - Marital status
+- `housing` - Housing loan (true/false)
+- `loan` - Personal loan (true/false)
+- `hasDefault` - Default status (true/false)
+- `search` - Text search (job/education/marital)
+- `page` - Page number (default: 1)
+- `limit` - Items per page (max: 100)
+- `sortBy` - Sort column (id, age, job, education)
+- `order` - ASC or DESC
+
+---
+
+## 🗄️ Database Schema
+
+### Tables (3)
+
+**users**
+```sql
+id, email, password, role, created_at, updated_at
+```
+
+**customers**
+```sql
+id, age, job, marital, education,
+has_default, has_housing_loan, has_personal_loan,
+contact, month, day_of_week,
+campaign, pdays, previous, poutcome,
+created_at, updated_at
+```
+
+**predictions**
+```sql
+id, customer_id (FK), probability_score, will_subscribe,
+model_version, predicted_at
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+./tests/test-api-week2.sh
+
+# Manual test - Login as sales
+curl -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"sales1@leadscoring.com","password":"password123"}'
+
+# Test CSV upload as sales (should work!)
+curl -X POST http://localhost:3000/api/v1/customers/upload-csv \
+  -H "Authorization: Bearer YOUR_SALES_TOKEN" \
+  -F "csvfile=@customers.csv"
+```
+
+---
 
 ## 📁 Project Structure
 
 ```
 backend/
 ├── src/
-│   ├── config/
-│   │   └── database.js          # PostgreSQL connection config
-│   ├── controllers/
-│   │   └── authController.js    # Auth business logic
-│   ├── middlewares/
-│   │   ├── authMiddleware.js    # JWT authentication
-│   │   ├── errorMiddleware.js   # Error handling
-│   │   └── loggerMiddleware.js  # Request logging
-│   ├── routes/
-│   │   ├── authRoutes.js        # Auth endpoints
-│   │   └── index.js             # Main router
-│   ├── services/
-│   │   └── userService.js       # Database operations for users
-│   ├── utils/
-│   │   ├── response.js          # Response formatters
-│   │   └── validator.js         # Input validation
-│   └── index.js                 # Application entry point
+│   ├── config/              # Database & ML service config
+│   ├── controllers/         # Business logic
+│   ├── middlewares/         # Auth, RBAC, upload, error handling
+│   ├── routes/              # API routes
+│   ├── services/            # Database operations
+│   └── utils/               # Helpers, validators, CSV parser
+│
 ├── database/
-│   ├── schema.sql               # Database schema
-│   └── seed.js                  # Seed script
-├── docs/
-│   ├── SETUP_GUIDE.md           # Detailed setup guide
-│   └── MIGRATION_USERNAME_TO_EMAIL.md  # Migration guide
-├── .env.example                 # Environment variables template
-├── .gitignore
-├── package.json
-└── README.md
+│   ├── schema.sql           # Database schema
+│   └── seed.js              # Sample data & admin user
+│
+├── tests/
+│   └── test-api-week2.sh    # API tests
+│
+├── .env.example             # Environment template
+├── package.json             # Dependencies
+└── README.md                # This file
 ```
-
-## 🔌 API Endpoints
-
-### Base URL
-
-```
-http://localhost:3000/api/v1
-```
-
-### Health Check
-
-#### GET `/health`
-
-Check API status
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "API is running",
-  "data": {
-    "status": "OK",
-    "timestamp": "2025-11-04T10:00:00.000Z",
-    "service": "Lead Scoring Backend API",
-    "version": "1.0.0",
-    "environment": "development"
-  }
-}
-```
-
-### Authentication
-
-#### POST `/auth/register`
-
-Register new user
-
-**Request Body:**
-
-```json
-{
-  "email": "sales1@leadscoring.com",
-  "password": "password123",
-  "role": "sales"
-}
-```
-
-**Response (201):**
-
-```json
-{
-  "success": true,
-  "message": "User registered successfully",
-  "data": {
-    "user": {
-      "id": 1,
-      "email": "sales1@leadscoring.com",
-      "role": "sales",
-      "createdAt": "2025-11-04T10:00:00.000Z"
-    }
-  }
-}
-```
-
-#### POST `/auth/login`
-
-Login user
-
-**Request Body:**
-
-```json
-{
-  "email": "sales1@leadscoring.com",
-  "password": "password123"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "success": true,
-  "message": "Login successful",
-  "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "user": {
-      "id": 1,
-      "email": "sales1@leadscoring.com",
-      "role": "sales"
-    }
-  }
-}
-```
-
-#### GET `/auth/me` 🔒
-
-Get current user profile (Requires Authentication)
-
-**Headers:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-{
-  "success": true,
-  "message": "User profile retrieved successfully",
-  "data": {
-    "id": 1,
-    "email": "sales1@leadscoring.com",
-    "role": "sales",
-    "created_at": "2025-11-04T10:00:00.000Z"
-  }
-}
-```
-
-#### POST `/auth/logout` 🔒
-
-Logout user (Requires Authentication)
-
-**Headers:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-{
-  "success": true,
-  "message": "Logout successful",
-  "data": null
-}
-```
-
-## 🔐 Authentication
-
-API menggunakan JWT (JSON Web Tokens) untuk autentikasi.
-
-### Cara Menggunakan:
-
-1. Login untuk mendapatkan token
-2. Gunakan token di header untuk protected endpoints:
-
-```
-Authorization: Bearer <your-token-here>
-```
-
-### Token Expiration
-
-Default: 24 jam (dapat diubah di `.env` dengan `JWT_EXPIRES_IN`)
-
-## 🧪 Testing dengan cURL
-
-### Register
-
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123",
-    "role": "sales"
-  }'
-```
-
-### Login
-
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123"
-  }'
-```
-
-### Get Profile (dengan token)
-
-```bash
-curl -X GET http://localhost:3000/api/v1/auth/me \
-  -H "Authorization: Bearer <your-token>"
-```
-
-## 🗄️ Database Schema
-
-### Table: users
-
-| Column     | Type         | Description           |
-| ---------- | ------------ | --------------------- |
-| id         | SERIAL       | Primary key           |
-| email      | VARCHAR(255) | Unique email address  |
-| password   | VARCHAR(255) | Hashed password       |
-| role       | VARCHAR(20)  | admin or sales        |
-| created_at | TIMESTAMP    | Creation timestamp    |
-| updated_at | TIMESTAMP    | Last update timestamp |
-
-### Table: customers (untuk minggu 2)
-
-Tabel untuk menyimpan data nasabah dari Bank Marketing Dataset
-
-### Table: predictions (untuk minggu 2)
-
-Tabel untuk menyimpan hasil prediksi ML
-
-## 📝 Development Guidelines
-
-### Naming Conventions
-
-- **Files**: camelCase (contoh: `authController.js`, `userService.js`)
-- **Functions**: camelCase (contoh: `findUserByEmail`, `createUser`)
-- **Constants**: UPPER_SNAKE_CASE (contoh: `JWT_SECRET`, `DB_PORT`)
-- **Classes**: PascalCase (jika diperlukan)
-
-### Email Validation
-
-Email harus memenuhi format standar:
-
-- ✅ Valid: `user@example.com`
-- ✅ Valid: `user.name@domain.co.id`
-- ❌ Invalid: `user@` (incomplete)
-- ❌ Invalid: `user@domain` (missing TLD)
-
-### Code Style
-
-Project menggunakan ESLint dan Prettier untuk code formatting.
-
-```bash
-# Check linting
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-```
-
-### Error Handling
-
-Semua error harus di-handle dengan proper error responses:
-
-```javascript
-// ✅ Good
-try {
-  // your code
-} catch (error) {
-  console.error('Error description:', error);
-  return sendError(res, 'User-friendly message', 500);
-}
-
-// ❌ Bad
-try {
-  // your code
-} catch (error) {
-  throw error; // Don't throw in controllers
-}
-```
-
-## 🚧 Roadmap
-
-### ✅ Week 1 (Current)
-
-- [x] Database setup & schema
-- [x] Authentication system (JWT)
-- [x] User service & controller
-- [x] Error handling & logging
-- [x] Project structure setup
-- [x] Email-based authentication
-
-### 🔜 Week 2
-
-- [ ] ML Service integration
-- [ ] Customer CRUD operations
-- [ ] Prediction API
-- [ ] Database seeding with full dataset
-
-### 🔜 Week 3
-
-- [ ] Testing & documentation
-- [ ] Performance optimization
-- [ ] Caching implementation
-
-### 🔜 Week 4
-
-- [ ] Deployment preparation
-- [ ] Docker setup
-- [ ] CI/CD pipeline
-- [ ] Final documentation
-
-## 🐛 Troubleshooting
-
-### Database Connection Error
-
-```
-❌ Database connection failed
-```
-
-**Solution:**
-
-1. Check if PostgreSQL is running: `pg_isready`
-2. Verify credentials in `.env`
-3. Check database exists: `psql -l`
-4. Check firewall settings
-
-### Port Already in Use
-
-```
-Error: listen EADDRINUSE: address already in use :::3000
-```
-
-**Solution:**
-
-1. Change port in `.env`
-2. Or kill process using port: `lsof -ti:3000 | xargs kill`
-
-### JWT Token Issues
-
-```
-❌ Invalid token
-```
-
-**Solution:**
-
-1. Check token format: `Bearer <token>`
-2. Verify token hasn't expired
-3. Check `JWT_SECRET` in `.env` matches
-
-### Invalid Email Format
-
-```
-❌ Invalid email format
-```
-
-**Solution:**
-
-1. Ensure email follows format: `user@domain.com`
-2. Check for spaces or invalid characters
-3. Verify email length (max 255 characters)
-
-## 👥 Team Members
-
-- **M004D5Y1135** - Mohamad Azra Muntaha (Machine Learning)
-- **M004D5Y1974** - Yendra Wijayanto (Machine Learning)
-- **R001D5Y0088** - Ahmad Faris Al Aziz (React & Backend)
-- **R229D5Y1036** - M. Rivqi Al Varras (React & Backend)
-- **R297D5Y1611** - Rafi Pradipa Adriano (React & Backend)
-
-## 📄 License
-
-ISC
-
-## 🙏 Acknowledgments
-
-- Dicoding Indonesia
-- Accenture
-- Bank Marketing Dataset - UCI Machine Learning Repository
 
 ---
 
-**Happy Coding! 🚀**
+## 🔐 Security Features
+
+- ✅ **JWT Authentication** - Secure token-based auth
+- ✅ **RBAC** - Admin-only registration
+- ✅ **Password Hashing** - bcryptjs with salt
+- ✅ **Helmet** - Security headers
+- ✅ **CORS** - Configured for frontend
+- ✅ **SQL Injection Protection** - Parameterized queries
+- ✅ **Input Validation** - All inputs validated
+- ✅ **File Upload Security** - Type & size validation
+
+---
+
+## 🤝 ML Service Integration
+
+**Requirements:**
+- Flask ML service running on port 5050
+- LightGBM model (51 features)
+
+**Flow:**
+```
+Express Backend → Flask ML Service → LightGBM Model
+      ↓                    ↓
+PostgreSQL ←───── Prediction Result
+      ↓
+Return to User
+```
+
+---
+
+## 📊 Response Format
+
+**Success:**
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": { ... }
+}
+```
+
+**Error:**
+```json
+{
+  "success": false,
+  "error": "Error type",
+  "message": "Description"
+}
+```
+
+---
+
+## 🐛 Troubleshooting
+
+**Database connection failed:**
+```bash
+sudo systemctl start postgresql
+```
+
+**ML service unavailable:**
+```bash
+cd ml-service
+python app.py  # Make sure it's running on port 5050
+```
+
+**Permission denied (RBAC):**
+- Only happens on `/auth/register` if you're not admin
+- All other endpoints work for both admin & sales
+
+**CSV upload failed:**
+- Check file format (14 columns required)
+- Check file size (max 10MB)
+- Download template first
+
+---
+
+## 📝 NPM Scripts
+
+```bash
+npm run dev        # Development with watch
+npm start          # Production
+npm run seed       # Seed database
+npm run lint       # ESLint check
+npm run lint:fix   # Fix ESLint issues
+```
+
+---
+
+## ⚠️ Important Notes
+
+### RBAC Clarification
+**Admin vs Sales:**
+- **Admin:** Can register new users
+- **Sales:** Cannot register new users
+- **All other features:** SAMA untuk admin dan sales
+
+Tidak ada pembatasan read-only untuk sales. Sales bisa full CRUD customers, upload CSV, predictions, dll.
+
+### Admin-Only Registration
+Registration endpoint is **admin-only**. First admin must be created via seed:
+```bash
+npm run seed
+```
+
+### ML Service Port
+Service now runs on **port 5050** (not 5000) to avoid conflicts.
+
+---
+
+## 🎯 What's New in v2.5
+
+### Major Features
+1. **CSV Bulk Upload** - Import ribuan customers sekaligus
+2. **Simple RBAC** - Admin-only registration, all else same
+3. **Advanced Filters** - 8 query parameters untuk filtering
+4. **Secure User Management** - Only admin can create users
+
+### API Changes
+- Added: CSV upload & template endpoints
+- Changed: Registration now admin-only
+- Enhanced: Customer list with advanced filters
+
+### Technical
+- Added: Multer (file upload)
+- Added: CSV parser utility
+- Added: RBAC middleware (minimal, only for registration)
+- Updated: ML service port (5050)
+
+---
+
+## 📞 Support
+
+**Issues:** Check troubleshooting section  
+**Questions:** Review API documentation  
+**ML Service:** See ml-service/README.md
+
+---
+
+**Team:** A25-CS060 (Accenture x Dicoding - Asah Program)  
+**Version:** 2.5 Enhanced  
+**Status:** ✅ Production Ready  
+**Last Updated:** November 9, 2025

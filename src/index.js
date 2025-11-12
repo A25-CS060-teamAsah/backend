@@ -53,14 +53,18 @@ const startServer = async () => {
     // Start listening
     app.listen(PORT, HOST, () => {
       console.log(`
-                                                         
-   Lead Scoring Backend API                           
-                                                    
-   Server:      http://${HOST}:${PORT}                    
-   Environment: ${process.env.NODE_ENV || 'production'}                                      
-   API Docs:    http://${HOST}:${PORT}/api/v1/health                                                              
-   Status:      ✅ Running                               
-   Database:    ${dbConnected ? '✅ Connected' : '⚠️  Not Connected'}                        
+╔══════════════════════════════════════════════════════════╗
+║                                                          ║
+║   🚀 Lead Scoring Backend API                           ║
+║                                                          ║
+║   Server:      http://${HOST}:${PORT}                    ║
+║   Environment: ${process.env.NODE_ENV || 'production'}                                      ║
+║   API Docs:    http://${HOST}:${PORT}/api/v1/health     ║
+║                                                          ║
+║   Status:      ✅ Running                               ║
+║   Database:    ${dbConnected ? '✅ Connected' : '⚠️  Not Connected'}                        ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
       `);
     });
   } catch (error) {
