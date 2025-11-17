@@ -75,10 +75,22 @@ npm install
 cp .env.example .env
 # Edit .env with your config
 
+
+
 # 3. Create database
 psql -U postgres
 CREATE DATABASE lead_scoring_db;
 \q
+
+
+# with docker
+docker compose up -d
+
+# open database
+docker exec -it lead_scoring_db psql -U admin -d lead_scoring_db
+
+# run schema with docker
+docker exec -i lead_scoring_db psql -U admin -d lead_scoring_db < database/schema.sql
 
 # 4. Run schema
 psql -U postgres lead_scoring_db < database/schema.sql
