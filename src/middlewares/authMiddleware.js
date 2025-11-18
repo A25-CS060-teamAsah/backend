@@ -8,23 +8,32 @@ import { sendError } from '../utils/response.js';
  */
 export const authenticate = (req, res, next) => {
   try {
+    console.log('🔑 Auth Middleware - authenticate called');
+    console.log('   Request path:', req.path);
+    console.log('   Request method:', req.method);
+
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
+      console.log('   ❌ No authorization header found');
       return sendError(res, 'Authorization header is missing', 401);
     }
 
     // Check if format is "Bearer <token>"
     const parts = authHeader.split(' ');
     if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      console.log('   ❌ Invalid token format');
       return sendError(res, 'Invalid token format. Use: Bearer <token>', 401);
     }
 
     const token = parts[1];
+    console.log('   Token received (first 20 chars):', token.substring(0, 20) + '...');
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('   ✅ Token verified successfully');
+    console.log('   Decoded JWT payload:', decoded);
 
     // Attach user info to request
     req.user = {
@@ -33,8 +42,12 @@ export const authenticate = (req, res, next) => {
       role: decoded.role,
     };
 
+    console.log('   User attached to request:', req.user);
+    console.log('   Proceeding to next middleware...');
+
     next();
   } catch (error) {
+    console.log('   ❌ Authentication error:', error.message);
     if (error.name === 'TokenExpiredError') {
       return sendError(res, 'Token has expired', 401);
     }

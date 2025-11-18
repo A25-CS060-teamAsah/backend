@@ -258,6 +258,7 @@ export const getCustomerById = async (id) => {
 export const createCustomer = async (customerData) => {
   try {
     const {
+      name,
       age,
       job,
       marital,
@@ -280,16 +281,17 @@ export const createCustomer = async (customerData) => {
 
     const query = `
       INSERT INTO customers (
-        age, job, marital, education,
+        name, age, job, marital, education,
         has_default, has_housing_loan, has_personal_loan,
         contact, month, day_of_week,
         campaign, pdays, previous, poutcome
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *
     `;
 
     const values = [
+      name,
       age,
       job,
       marital,
@@ -457,15 +459,16 @@ export const bulkCreateCustomers = async (customers) => {
       try {
         const query = `
           INSERT INTO customers (
-            age, job, marital, education, 
+            name, age, job, marital, education,
             has_default, has_housing_loan, has_personal_loan,
-            contact, month, day_of_week, 
+            contact, month, day_of_week,
             campaign, pdays, previous, poutcome
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-          RETURNING id, age, job, education
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          RETURNING id, name, age, job, education
         `;
 
         const values = [
+          customer.name,
           customer.age,
           customer.job,
           customer.marital,

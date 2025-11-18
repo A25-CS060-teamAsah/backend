@@ -10,6 +10,7 @@ import { validateCustomerData } from './customerValidator.js';
 
 // Required CSV columns
 const REQUIRED_COLUMNS = [
+  'name',
   'age',
   'job',
   'marital',
@@ -98,6 +99,7 @@ export const validateCSVRecords = (records) => {
     // Convert string booleans to actual booleans
     const processedRecord = {
       ...record,
+      name: record.name,
       default: convertToBoolean(record.default),
       housing: convertToBoolean(record.housing),
       loan: convertToBoolean(record.loan),
@@ -151,10 +153,10 @@ const convertToBoolean = (value) => {
  */
 export const generateCSVTemplate = () => {
   const header = REQUIRED_COLUMNS.join(',');
-  const example1 = '30,technician,married,secondary,false,true,false,cellular,may,mon,2,999,0,unknown';
-  const example2 = '45,management,single,tertiary,false,false,false,telephone,jun,fri,1,999,0,success';
-  const example3 = '38,admin.,divorced,secondary,false,true,false,cellular,may,wed,3,999,0,nonexistent';
-  
+  const example1 = 'John Doe,30,technician,married,secondary,false,true,false,cellular,may,mon,2,999,0,unknown';
+  const example2 = 'Jane Smith,45,management,single,tertiary,false,false,false,telephone,jun,fri,1,999,0,success';
+  const example3 = 'Bob Johnson,38,admin.,divorced,secondary,false,true,false,cellular,may,wed,3,999,0,nonexistent';
+
   return `${header}\n${example1}\n${example2}\n${example3}`;
 };
 

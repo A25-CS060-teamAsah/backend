@@ -66,6 +66,15 @@ const VALID_POUTCOME = ['failure', 'nonexistent', 'success'];
 export const validateCustomerData = (data, isPartial = false) => {
   const errors = [];
 
+  // Name validation
+  if (!isPartial || data.name !== undefined) {
+    if (!data.name || (typeof data.name === 'string' && data.name.trim() === '')) {
+      errors.push('Name is required');
+    } else if (typeof data.name !== 'string') {
+      errors.push('Name must be a string');
+    }
+  }
+
   // Age validation
   if (!isPartial || data.age !== undefined) {
     if (!data.age) {

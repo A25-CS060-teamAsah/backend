@@ -28,7 +28,7 @@ export const findUserByEmail = async (email) => {
  */
 export const findUserById = async (id) => {
   try {
-    const query = 'SELECT id, email, role, created_at FROM users WHERE id = $1';
+    const query = 'SELECT id, name, email, role, created_at FROM users WHERE id = $1';
     const result = await pool.query(query, [id]);
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
@@ -39,20 +39,20 @@ export const findUserById = async (id) => {
 
 /**
  * Create new user
- * @param {Object} userData - { email, password, role }
+ * @param {Object} userData - { name, email, password, role }
  * @returns {Promise<Object>}
  */
 export const createUser = async (userData) => {
   try {
-    const { email, password, role = 'sales' } = userData;
+    const { name, email, password, role = 'sales' } = userData;
 
     const query = `
-      INSERT INTO users (email, password, role)
-      VALUES ($1, $2, $3)
-      RETURNING id, email, role, created_at
+      INSERT INTO users (name, email, password, role)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, name, email, role, created_at
     `;
 
-    const result = await pool.query(query, [email, password, role]);
+    const result = await pool.query(query, [name, email, password, role]);
     return result.rows[0];
   } catch (error) {
     console.error('Error in createUser:', error);
@@ -66,7 +66,8 @@ export const createUser = async (userData) => {
  */
 export const getAllUsers = async () => {
   try {
-    const query = 'SELECT id, email, role, created_at FROM users ORDER BY created_at DESC';
+    const query =
+      'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC';
     const result = await pool.query(query);
     return result.rows;
   } catch (error) {
@@ -104,7 +105,7 @@ export const updateUser = async (id, updates) => {
       UPDATE users
       SET ${fields.join(', ')}
       WHERE id = $${paramIndex}
-      RETURNING id, email, role, created_at, updated_at
+      RETURNING id, name, email, role, created_at, updated_at
     `;
 
     const result = await pool.query(query, values);

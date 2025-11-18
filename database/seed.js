@@ -22,18 +22,18 @@ const seedDatabase = async () => {
     const hashedPassword = await bcrypt.hash('password123', 10);
 
     const users = [
-      { email: 'admin@leadscoring.com', password: hashedPassword, role: 'admin' },
-      { email: 'sales1@leadscoring.com', password: hashedPassword, role: 'sales' },
-      { email: 'sales2@leadscoring.com', password: hashedPassword, role: 'sales' },
-      { email: 'manager@leadscoring.com', password: hashedPassword, role: 'admin' },
+      { name: 'Admin User', email: 'admin@leadscoring.com', password: hashedPassword, role: 'admin' },
+      { name: 'Sales Agent 1', email: 'sales1@leadscoring.com', password: hashedPassword, role: 'sales' },
+      { name: 'Sales Agent 2', email: 'sales2@leadscoring.com', password: hashedPassword, role: 'sales' },
+      { name: 'Manager User', email: 'manager@leadscoring.com', password: hashedPassword, role: 'admin' },
     ];
 
     for (const user of users) {
       await client.query(
-        `INSERT INTO users (email, password, role) 
-         VALUES ($1, $2, $3) 
+        `INSERT INTO users (name, email, password, role)
+         VALUES ($1, $2, $3, $4)
          ON CONFLICT (email) DO NOTHING`,
-        [user.email, user.password, user.role]
+        [user.name, user.email, user.password, user.role]
       );
     }
 
@@ -47,24 +47,24 @@ const seedDatabase = async () => {
     console.log('👥 Seeding sample customers...');
 
     const sampleCustomers = [
-      [30, 'technician', 'married', 'secondary', false, true, false, 'cellular', 'may', 'mon', 2, 999, 0, 'unknown'],
-      [35, 'management', 'single', 'tertiary', false, false, false, 'cellular', 'jun', 'tue', 1, 999, 0, 'unknown'],
-      [45, 'services', 'married', 'secondary', false, true, true, 'telephone', 'jul', 'wed', 3, 10, 2, 'success'],
-      [38, 'blue-collar', 'married', 'secondary', false, false, false, 'cellular', 'may', 'thu', 1, 999, 0, 'unknown'],
-      [42, 'entrepreneur', 'divorced', 'tertiary', false, true, false, 'cellular', 'aug', 'fri', 2, 15, 1, 'failure'],
-      [28, 'admin.', 'single', 'tertiary', false, false, false, 'cellular', 'may', 'mon', 1, 999, 0, 'unknown'],
-      [50, 'retired', 'married', 'primary', false, true, false, 'telephone', 'jun', 'tue', 4, 20, 3, 'success'],
-      [33, 'technician', 'single', 'secondary', false, false, true, 'cellular', 'jul', 'wed', 2, 999, 0, 'unknown'],
-      [55, 'management', 'married', 'tertiary', false, true, false, 'cellular', 'aug', 'thu', 1, 10, 1, 'success'],
-      [26, 'student', 'single', 'tertiary', false, false, false, 'cellular', 'may', 'fri', 1, 999, 0, 'unknown'],
+      ['John Doe', 30, 'technician', 'married', 'secondary', false, true, false, 'cellular', 'may', 'mon', 2, 999, 0, 'unknown'],
+      ['Jane Smith', 35, 'management', 'single', 'tertiary', false, false, false, 'cellular', 'jun', 'tue', 1, 999, 0, 'unknown'],
+      ['Robert Johnson', 45, 'services', 'married', 'secondary', false, true, true, 'telephone', 'jul', 'wed', 3, 10, 2, 'success'],
+      ['Maria Garcia', 38, 'blue-collar', 'married', 'secondary', false, false, false, 'cellular', 'may', 'thu', 1, 999, 0, 'unknown'],
+      ['David Brown', 42, 'entrepreneur', 'divorced', 'tertiary', false, true, false, 'cellular', 'aug', 'fri', 2, 15, 1, 'failure'],
+      ['Sarah Williams', 28, 'admin.', 'single', 'tertiary', false, false, false, 'cellular', 'may', 'mon', 1, 999, 0, 'unknown'],
+      ['Michael Jones', 50, 'retired', 'married', 'primary', false, true, false, 'telephone', 'jun', 'tue', 4, 20, 3, 'success'],
+      ['Emily Davis', 33, 'technician', 'single', 'secondary', false, false, true, 'cellular', 'jul', 'wed', 2, 999, 0, 'unknown'],
+      ['James Miller', 55, 'management', 'married', 'tertiary', false, true, false, 'cellular', 'aug', 'thu', 1, 10, 1, 'success'],
+      ['Lisa Anderson', 26, 'student', 'single', 'tertiary', false, false, false, 'cellular', 'may', 'fri', 1, 999, 0, 'unknown'],
     ];
 
     for (const customer of sampleCustomers) {
       await client.query(
-        `INSERT INTO customers 
-         (age, job, marital, education, has_default, has_housing_loan, has_personal_loan,
+        `INSERT INTO customers
+         (name, age, job, marital, education, has_default, has_housing_loan, has_personal_loan,
           contact, month, day_of_week, campaign, pdays, previous, poutcome)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
         customer
       );
     }

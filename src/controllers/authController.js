@@ -62,6 +62,7 @@ export const login = async (req, res) => {
         token,
         user: {
           id: user.id,
+          name: user.name,
           email: user.email,
           role: user.role,
         },
@@ -80,7 +81,12 @@ export const login = async (req, res) => {
  */
 export const register = async (req, res) => {
   try {
-    const { email, password, role = 'sales' } = req.body;
+    const { name, email, password, role = 'sales' } = req.body;
+
+    // Validate name
+    if (!name || name.trim() === '') {
+      return sendError(res, 'Name is required', 400);
+    }
 
     // Validate email
     const emailValidation = validateEmail(email);
@@ -110,6 +116,7 @@ export const register = async (req, res) => {
 
     // Create user
     const newUser = await createUser({
+      name,
       email,
       password: hashedPassword,
       role,
@@ -121,6 +128,7 @@ export const register = async (req, res) => {
       {
         user: {
           id: newUser.id,
+          name: newUser.name,
           email: newUser.email,
           role: newUser.role,
           createdAt: newUser.created_at,
