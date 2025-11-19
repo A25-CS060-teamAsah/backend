@@ -4,7 +4,6 @@ import { getCustomerById } from '../services/customerService.js';
 import { getCustomersWithoutPredictions } from '../services/customerService.js';
 import {
   createPrediction,
-  getLatestPrediction,
   getPredictionHistory,
   getTopLeads,
   getPredictionStats,

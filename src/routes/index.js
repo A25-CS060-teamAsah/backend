@@ -1,4 +1,5 @@
 /* eslint-env node */
+/* global process */
 import express from 'express';
 import authRoutes from './authRoutes.js';
 import customerRoutes from './customerRoutes.js';
