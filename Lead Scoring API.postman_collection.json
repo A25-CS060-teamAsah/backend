@@ -1,0 +1,842 @@
+{
+	"info": {
+		"_postman_id": "f45b2ded-3a2f-4086-b840-b507505614ae",
+		"name": "Lead Scoring API",
+		"description": "Complete API testing for Predictive Lead Scoring Portal\n\nTeam: A25-CS060  \nVersion: 3.0 (Auto Predict & Caching)\n\n**Features:**\n\n- 21 API endpoints\n    \n- JWT authentication\n    \n- RBAC (Admin-only registration)\n    \n- CSV bulk upload\n    \n- Advanced search & filter\n    \n- ML predictions\n    \n\n**Usage:**\n\n1. Set environment variables (base_url, admin_token, sales_token)\n    \n2. Run \"Login as Admin\" to get admin token\n    \n3. Run \"Login as Sales\" to get sales token\n    \n4. Test endpoints with appropriate tokens\n    \n\n**RBAC Rules:**\n\n- Admin: Can register users + all features\n    \n- Sales: Cannot register users, but all other features same",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "44553933",
+		"_collection_link": "https://ahmadfaris-2061451.postman.co/workspace/Ahmad-Faris's-Workspace~256f0b64-5274-4589-899f-8265e840f98e/collection/44553933-f45b2ded-3a2f-4086-b840-b507505614ae?action=share&source=collection_link&creator=44553933"
+	},
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"health"
+							]
+						},
+						"description": "Check if API is running"
+					},
+					"response": []
+				},
+				{
+					"name": "Login as Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('admin_token', jsonData.data.token);",
+									"    pm.environment.set('admin_id', jsonData.data.user.id);",
+									"    console.log('✅ Admin token saved');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@leadscoring.com\",\n  \"password\": \"Admin123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login as admin user and save token"
+					},
+					"response": []
+				},
+				{
+					"name": "Login as Sales",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('sales_token', jsonData.data.token);",
+									"    pm.environment.set('sales_id', jsonData.data.user.id);",
+									"    console.log('✅ Sales token saved');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"sales1@leadscoring.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login as sales user and save token"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"me"
+							]
+						},
+						"description": "Get current user profile"
+					},
+					"response": []
+				},
+				{
+					"name": "Register New User (Admin Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"New Sales User\",\n  \"email\": \"newsales@leadscoring.com\",\n  \"password\": \"password123\",\n  \"role\": \"sales\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register new user - ADMIN ONLY\n\nTest:\n- With admin_token: Should work ✅\n- With sales_token: Should fail 403 ❌"
+					},
+					"response": []
+				},
+				{
+					"name": "Register New User (Sales - Should Fail)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sales_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test Sales User\",\n  \"email\": \"testsales@leadscoring.com\",\n  \"password\": \"password123\",\n  \"role\": \"sales\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Test RBAC: Sales user trying to register\n\nExpected: 403 Forbidden ❌"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Logout current user"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints (5 total)"
+		},
+		{
+			"name": "2. Customers",
+			"item": [
+				{
+					"name": "Get All Customers (Basic)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data.customers && jsonData.data.customers.length > 0) {",
+									"        pm.environment.set('customer_id', jsonData.data.customers[0].id);",
+									"        console.log('✅ Customer ID saved:', jsonData.data.customers[0].id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/customers?page=1&limit=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"customers"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Get customers with pagination\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customers with Filters",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sales_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/customers?minAge=30&maxAge=50&job=technician&housing=true&page=1&limit=20&sortBy=age&order=DESC",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"customers"
+							],
+							"query": [
+								{
+									"key": "minAge",
+									"value": "30"
+								},
+								{
+									"key": "maxAge",
+									"value": "50"
+								},
+								{
+									"key": "job",
+									"value": "technician"
+								},
+								{
+									"key": "housing",
+									"value": "true"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "sortBy",
+									"value": "age"
+								},
+								{
+									"key": "order",
+									"value": "DESC"
+								}
+							]
+						},
+						"description": "Advanced search & filter\n\nFilters:\n- minAge, maxAge\n- job, education, marital\n- housing, loan, hasDefault\n- search (text)\n- sortBy, order\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customer by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/customers/{{customer_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"customers",
+								"{{customer_id}}"
+							]
+						},
+						"description": "Get customer details by ID\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Customer (Sales)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sales_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"age\": 35,\n  \"job\": \"technician\",\n  \"marital\": \"married\",\n  \"education\": \"secondary\",\n  \"default\": false,\n  \"housing\": true,\n  \"loan\": false,\n  \"contact\": \"cellular\",\n  \"month\": \"may\",\n  \"day_of_week\": \"mon\",\n  \"campaign\": 2,\n  \"pdays\": 999,\n  \"previous\": 0,\n  \"poutcome\": \"unknown\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/customers",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"customers"
+							]
+						},
+						"description": "Create new customer\n\nTest: Sales user can create ✅\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Customer (Sales)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sales_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe Updated\",\n  \"age\": 36,\n  \"job\": \"management\",\n  \"marital\": \"married\",\n  \"education\": \"tertiary\",\n  \"default\": false,\n  \"housing\": true,\n  \"loan\": false,\n  \"contact\": \"cellular\",\n  \"month\": \"jun\",\n  \"day_of_week\": \"tue\",\n  \"campaign\": 3,\n  \"pdays\": 999,\n  \"previous\": 0,\n  \"poutcome\": \"unknown\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/customers/{{customer_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"customers",
+								"{{customer_id}}"
+							]
+						},
+						"description": "Update customer\n\nTest: Sales user can update ✅\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Customer (Sales)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sales_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/customers/{{customer_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"customers",
+								"{{customer_id}}"
+							]
+						},
+						"description": "Delete customer\n\nTest: Sales user can delete ✅\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customer Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/customers/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"customers",
+								"stats"
+							]
+						},
+						"description": "Get customer statistics\n\nReturns:\n- Total customers\n- Average age\n- Loan statistics\n- etc.\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Download CSV Template",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sales_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/customers/csv-template",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"customers",
+								"csv-template"
+							]
+						},
+						"description": "Download CSV template for bulk import\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload CSV (Sales)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sales_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "csvfile",
+									"description": "CSV file with customer data",
+									"type": "file",
+									"src": "/path/to/customers.csv"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/customers/upload-csv",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"customers",
+								"upload-csv"
+							]
+						},
+						"description": "Upload CSV for bulk customer import\n\nTest: Sales user can upload ✅\n\nFormat:\n- Field name: csvfile\n- Max size: 10MB\n- Required columns: 14\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				}
+			],
+			"description": "Customer management endpoints (8 total)\n\nAll available for Admin & Sales ✅"
+		},
+		{
+			"name": "3. Predictions",
+			"item": [
+				{
+					"name": "Predict Single Customer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sales_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/customer/{{customer_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"predictions",
+								"customer",
+								"{{customer_id}}"
+							]
+						},
+						"description": "Predict single customer\n\nCalls ML service to get prediction\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Batch Predict",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customerIds\": [1, 2, 3, 4, 5],\n  \"limit\": 5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/batch",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"predictions",
+								"batch"
+							]
+						},
+						"description": "Batch predict multiple customers\n\nOptional params:\n- customerIds: Array of IDs\n- limit: Number of customers\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Top Leads",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sales_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/top-leads?limit=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"predictions",
+								"top-leads"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Get top leads ranked by probability score\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Prediction Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"predictions",
+								"stats"
+							]
+						},
+						"description": "Get prediction statistics\n\nReturns:\n- Total predictions\n- Average score\n- Positive/negative counts\n- etc.\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customer Prediction History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sales_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/customer/{{customer_id}}/history",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"predictions",
+								"customer",
+								"{{customer_id}}",
+								"history"
+							]
+						},
+						"description": "Get prediction history for specific customer\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				}
+			],
+			"description": "Prediction endpoints (5 total)\n\nAll available for Admin & Sales ✅"
+		},
+		{
+			"name": "4. Auto Predict Jobs",
+			"item": [
+				{
+					"name": "Get Job Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/job/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"predictions",
+								"job",
+								"status"
+							]
+						},
+						"description": "Get auto predict job status\n\nReturns:\n- isRunning: boolean\n- lastResult: object\n- autoPredictStatus: object\n- cacheStats: object\n- schedules: object\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Cache Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/cache/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"predictions",
+								"cache",
+								"stats"
+							]
+						},
+						"description": "Get cache statistics\n\nReturns:\n- hits: number\n- misses: number\n- keys: number\n- predictionKeys: number\n- hitRate: string\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				},
+				{
+					"name": "Trigger Auto Predict Job (Manual)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/job/trigger",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"predictions",
+								"job",
+								"trigger"
+							]
+						},
+						"description": "Manually trigger auto predict job\n\nThis will predict all customers without predictions.\n\nReturns:\n- total: number of customers processed\n- success: number of successful predictions\n- failed: number of failed predictions\n- errors: array of error details\n\nAvailable for: Admin & Sales ✅"
+					},
+					"response": []
+				}
+			],
+			"description": "Auto Predict Job endpoints (3 total)\n\nNew in v2.5:\n- Cron job runs every 2 minutes\n- In-memory cache for predictions\n- Manual trigger available\n\nAll available for Admin & Sales ✅"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}

@@ -8,13 +8,14 @@ import routes from './routes/index.js';
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 import { simpleLogger } from './middlewares/loggerMiddleware.js';
 import { testConnection } from './config/database.js';
+import { startCronJobs, stopCronJobs } from './jobs/predictionJob.js';
 
 // Load environment variables
 dotenv.config();
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
 // Security middlewares
@@ -52,6 +53,12 @@ const startServer = async () => {
 
     // Start listening
     app.listen(PORT, HOST, () => {
+      // Start cron jobs after server is ready
+      startCronJobs();
+
+      const autoPredictEnabled =
+        process.env.ENABLE_AUTO_PREDICT_CRON !== 'false';
+
       console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║                                                          ║
@@ -63,6 +70,7 @@ const startServer = async () => {
 ║                                                          ║
 ║   Status:      ✅ Running                               ║
 ║   Database:    ${dbConnected ? '✅ Connected' : '⚠️  Not Connected'}                        ║
+║   Auto Predict: ${autoPredictEnabled ? '✅ Enabled (2 min)' : '❌ Disabled'}                    ║
 ║                                                          ║
 ╚══════════════════════════════════════════════════════════╝
       `);
@@ -83,6 +91,19 @@ process.on('unhandledRejection', (err) => {
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:', err);
   process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('📴 SIGTERM received. Shutting down gracefully...');
+  stopCronJobs();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('📴 SIGINT received. Shutting down gracefully...');
+  stopCronJobs();
+  process.exit(0);
 });
 
 // Start the server

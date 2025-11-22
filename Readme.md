@@ -1,7 +1,7 @@
 # 🏦 Lead Scoring Backend API
 
-**Team A25-CS060** - Predictive Lead Scoring Portal for Banking  
-**Version:** 2.5 (Enhanced with CSV Upload & RBAC)
+**Team A25-CS060** - Predictive Lead Scoring Portal for Banking
+**Version:** 3.0 (Auto Predict & Caching)
 
 ---
 
@@ -11,11 +11,13 @@ Backend Express.js untuk memprediksi dan memprioritaskan nasabah bank yang poten
 
 **Tech Stack:**
 - Express.js 5.x
-- PostgreSQL 14+
+- PostgreSQL 14+ / Supabase
 - JWT Authentication
 - Axios (ML Service integration)
 - Multer (File upload)
 - CSV Parser
+- Node-Cache (In-memory caching)
+- Node-Cron (Scheduled jobs)
 
 ---
 
@@ -49,10 +51,20 @@ Backend Express.js untuk memprediksi dan memprioritaskan nasabah bank yang poten
 - ✅ Prediction history per customer
 - ✅ Prediction statistics
 
+### Auto Predict System (NEW in v3.0)
+- ✅ **Cron Job** - Auto predict setiap 2 menit
+- ✅ **In-memory Cache** - Reduce redundant ML calls
+- ✅ **Trigger on Create** - Customer baru otomatis diprediksi
+- ✅ **Trigger on Update** - Prediksi ulang saat data berubah
+- ✅ **Trigger on CSV Upload** - Batch predict setelah import
+- ✅ **Manual Trigger** - API endpoint untuk trigger manual
+- ✅ **Job Status Monitoring** - Monitor status & cache statistics
+
 ### Integration
 - ✅ Flask ML Service (LightGBM model)
 - ✅ Automatic preprocessing (14 → 51 features)
 - ✅ Real-time predictions
+- ✅ Supabase PostgreSQL support
 
 ---
 
@@ -90,11 +102,11 @@ npm run seed
 npm run dev
 ```
 
-**Server:** http://localhost:3000
+**Server:** http://localhost:3001
 
 ---
 
-## 📡 API Endpoints (18 Total)
+## 📡 API Endpoints (21 Total)
 
 ### Authentication (5)
 ```
@@ -128,6 +140,13 @@ GET    /api/v1/predictions/stats                Statistics
 GET    /api/v1/predictions/customer/:id/history History
 ```
 
+### Auto Predict Jobs (3) - All Authenticated Users (NEW)
+```
+GET    /api/v1/predictions/job/status           Get job status & cache stats
+GET    /api/v1/predictions/cache/stats          Get cache statistics
+POST   /api/v1/predictions/job/trigger          Manual trigger auto predict
+```
+
 ---
 
 ## 🔐 RBAC (Role-Based Access Control)
@@ -155,23 +174,32 @@ GET    /api/v1/predictions/customer/:id/history History
 
 ```env
 # Server
-PORT=3000
+PORT=3001
+HOST=0.0.0.0
 NODE_ENV=development
 
-# Database
-DB_USER=postgres
-DB_HOST=localhost
-DB_NAME=lead_scoring_db
-DB_PASSWORD=your_password
-DB_PORT=5432
+# Database - Option 1: Supabase (Recommended)
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres
+
+# Database - Option 2: Local PostgreSQL
+# DB_USER=postgres
+# DB_HOST=localhost
+# DB_NAME=lead_scoring_db
+# DB_PASSWORD=your_password
+# DB_PORT=5432
 
 # JWT
-JWT_SECRET=your_jwt_secret
+JWT_SECRET=your_jwt_secret_key_change_in_production
 JWT_EXPIRES_IN=24h
 
 # ML Service (Flask) - Port 5050
 ML_SERVICE_URL=http://localhost:5050
 ML_API_TIMEOUT=10000
+
+# Auto Predict Configuration (NEW in v3.0)
+ENABLE_AUTO_PREDICT_CRON=true
+AUTO_PREDICT_CRON=*/2 * * * *
+AUTO_PREDICT_BATCH_SIZE=50
 ```
 
 ---
@@ -182,17 +210,19 @@ ML_API_TIMEOUT=10000
 // Admin - Can register users + all features
 {
   email: "admin@leadscoring.com",
-  password: "password123",
+  password: "Admin123!",
   role: "admin"
 }
 
 // Sales - Cannot register users, but all other features available
 {
   email: "sales1@leadscoring.com",
-  password: "password123",
+  password: "Admin123!",
   role: "sales"
 }
 ```
+
+**Note:** Password has been updated to `Admin123!` for better security.
 
 ---
 
@@ -293,15 +323,23 @@ model_version, predicted_at
 # Run all tests
 ./tests/test-api-week2.sh
 
-# Manual test - Login as sales
-curl -X POST http://localhost:3000/api/v1/auth/login \
+# Manual test - Login as admin
+curl -X POST http://localhost:3001/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"sales1@leadscoring.com","password":"password123"}'
+  -d '{"email":"admin@leadscoring.com","password":"Admin123!"}'
 
-# Test CSV upload as sales (should work!)
-curl -X POST http://localhost:3000/api/v1/customers/upload-csv \
-  -H "Authorization: Bearer YOUR_SALES_TOKEN" \
+# Test CSV upload (should work!)
+curl -X POST http://localhost:3001/api/v1/customers/upload-csv \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -F "csvfile=@customers.csv"
+
+# Test auto predict job status (NEW in v3.0)
+curl -X GET http://localhost:3001/api/v1/predictions/job/status \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Manually trigger auto predict (NEW in v3.0)
+curl -X POST http://localhost:3001/api/v1/predictions/job/trigger \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ---
@@ -313,9 +351,13 @@ backend/
 ├── src/
 │   ├── config/              # Database & ML service config
 │   ├── controllers/         # Business logic
+│   ├── jobs/                # Cron jobs (NEW in v3.0)
+│   │   └── predictionJob.js # Auto predict scheduler
 │   ├── middlewares/         # Auth, RBAC, upload, error handling
 │   ├── routes/              # API routes
 │   ├── services/            # Database operations
+│   │   ├── autoPredictService.js  # Auto predict logic (NEW)
+│   │   └── cacheService.js        # In-memory cache (NEW)
 │   └── utils/               # Helpers, validators, CSV parser
 │
 ├── database/
@@ -441,24 +483,46 @@ Service now runs on **port 5050** (not 5000) to avoid conflicts.
 
 ---
 
-## 🎯 What's New in v2.5
+## 🎯 What's New in v3.0
 
 ### Major Features
+1. **Auto Predict System** - Otomatis prediksi customer tanpa manual trigger
+2. **Cron Job Scheduler** - Background job setiap 2 menit
+3. **In-memory Caching** - Reduce redundant ML calls dengan node-cache
+4. **Event-driven Triggers** - Auto predict saat create/update/CSV upload
+5. **Supabase Integration** - Cloud PostgreSQL database support
+
+### Auto Predict Triggers
+- **On Customer Create** - Customer baru langsung diprediksi
+- **On Customer Update** - Cache dihapus, prediksi ulang
+- **On CSV Upload** - Batch predict semua customer yang diimport
+- **Cron Job** - Auto scan customers tanpa prediksi setiap 2 menit
+- **Manual Trigger** - API endpoint untuk trigger manual
+
+### New API Endpoints (3)
+- `GET /api/v1/predictions/job/status` - Status cron job & cache
+- `GET /api/v1/predictions/cache/stats` - Cache statistics
+- `POST /api/v1/predictions/job/trigger` - Manual trigger
+
+### Technical Changes
+- Added: node-cache (in-memory caching)
+- Added: node-cron (scheduled jobs)
+- Added: autoPredictService.js (auto predict logic)
+- Added: cacheService.js (cache management)
+- Added: predictionJob.js (cron scheduler)
+- Updated: DATABASE_URL support for Supabase
+- Updated: Port changed to 3001
+- Updated: Password to Admin123!
+
+---
+
+## 📜 Previous Versions
+
+### v2.5 Features
 1. **CSV Bulk Upload** - Import ribuan customers sekaligus
 2. **Simple RBAC** - Admin-only registration, all else same
 3. **Advanced Filters** - 8 query parameters untuk filtering
 4. **Secure User Management** - Only admin can create users
-
-### API Changes
-- Added: CSV upload & template endpoints
-- Changed: Registration now admin-only
-- Enhanced: Customer list with advanced filters
-
-### Technical
-- Added: Multer (file upload)
-- Added: CSV parser utility
-- Added: RBAC middleware (minimal, only for registration)
-- Updated: ML service port (5050)
 
 ---
 
@@ -470,7 +534,7 @@ Service now runs on **port 5050** (not 5000) to avoid conflicts.
 
 ---
 
-**Team:** A25-CS060 (Accenture x Dicoding - Asah Program)  
-**Version:** 2.5 Enhanced  
-**Status:** ✅ Production Ready  
-**Last Updated:** November 9, 2025
+**Team:** A25-CS060 (Accenture x Dicoding - Asah Program)
+**Version:** 3.0 (Auto Predict & Caching)
+**Status:** ✅ Production Ready
+**Last Updated:** November 22, 2025

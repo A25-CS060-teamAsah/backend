@@ -13,6 +13,8 @@ import {
 } from '../services/customerService.js';
 import { handleDatabaseError } from '../middlewares/errorMiddleware.js';
 import { parseAndValidateCSV, generateCSVTemplate } from '../utils/csvParser.js';
+import { triggerPredictionForNewCustomer, triggerBatchPrediction } from '../services/autoPredictService.js';
+import { deleteCachedPrediction } from '../services/cacheService.js';
 
 /**
  * Customer Controller
@@ -130,6 +132,9 @@ export const createCustomerHandler = async (req, res) => {
     // Create customer
     const newCustomer = await createCustomer(customerData);
 
+    // Trigger auto prediction for new customer (non-blocking)
+    triggerPredictionForNewCustomer(newCustomer.id);
+
     return sendSuccess(res, newCustomer, 'Customer created successfully', 201);
   } catch (error) {
     console.error('Create customer error:', error);
@@ -173,6 +178,10 @@ export const updateCustomerHandler = async (req, res) => {
     // Update customer
     const updatedCustomer = await updateCustomer(parseInt(id), updates);
 
+    // Clear cache and trigger new prediction (customer data changed)
+    deleteCachedPrediction(parseInt(id));
+    triggerPredictionForNewCustomer(parseInt(id));
+
     return sendSuccess(res, updatedCustomer, 'Customer updated successfully');
   } catch (error) {
     console.error('Update customer error:', error);
@@ -207,6 +216,9 @@ export const deleteCustomerHandler = async (req, res) => {
 
     // Delete customer (predictions will be cascade deleted)
     await deleteCustomer(parseInt(id));
+
+    // Clear cache for deleted customer
+    deleteCachedPrediction(parseInt(id));
 
     return sendSuccess(res, null, 'Customer deleted successfully');
   } catch (error) {
@@ -293,6 +305,13 @@ export const uploadCSVHandler = async (req, res) => {
     const insertResult = await bulkCreateCustomers(customersToInsert);
 
     console.log(`✅ CSV Upload - Insert complete: ${insertResult.successCount} created, ${insertResult.failedCount} failed`);
+
+    // Trigger batch prediction for newly created customers (non-blocking)
+    if (insertResult.created.length > 0) {
+      const newCustomerIds = insertResult.created.map(c => c.id);
+      console.log(`🔮 CSV Upload - Triggering predictions for ${newCustomerIds.length} customers`);
+      triggerBatchPrediction(newCustomerIds);
+    }
 
     // Prepare response
     const response = {
