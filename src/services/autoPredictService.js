@@ -1,5 +1,5 @@
 /* eslint-env node */
-/* global process */
+/* global process, setImmediate */
 import { getCustomersWithoutPredictions, getCustomerById } from './customerService.js';
 import { createPrediction } from './predictionService.js';
 import { predictCustomer, batchPredict, checkMLServiceHealth } from './mlService.js';
@@ -21,7 +21,6 @@ import {
 
 // Configuration
 const BATCH_SIZE = parseInt(process.env.AUTO_PREDICT_BATCH_SIZE) || 50;
-const RETRY_DELAY = parseInt(process.env.AUTO_PREDICT_RETRY_DELAY) || 5000; // 5 seconds
 
 /**
  * Predict single customer with caching

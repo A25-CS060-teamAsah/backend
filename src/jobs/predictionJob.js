@@ -141,7 +141,16 @@ export const triggerManualPredictJob = async () => {
     lastJobResult = await autoPredictNewCustomers();
     totalRuns++;
     lastRunTime = new Date().toISOString();
-    return { message: 'Auto-predict job completed successfully', results: lastJobResult };
+
+    // Provide informative message based on results
+    let message = 'Auto-predict job completed successfully';
+    if (lastJobResult.total === 0) {
+      message = 'No customers without predictions found. All customers already have predictions.';
+    } else if (lastJobResult.success > 0) {
+      message = `Successfully predicted ${lastJobResult.success} out of ${lastJobResult.total} customers`;
+    }
+
+    return { message, results: lastJobResult };
   } catch (error) {
     console.error('[CronJob] Manual job failed:', error.message);
     lastJobResult = { error: error.message, timestamp: new Date().toISOString() };
