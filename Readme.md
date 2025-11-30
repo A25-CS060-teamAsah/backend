@@ -1,540 +1,689 @@
-# 🏦 Lead Scoring Backend API
+# Backend API - Lead Scoring System
 
-**Team A25-CS060** - Predictive Lead Scoring Portal for Banking
-**Version:** 3.0 (Auto Predict & Caching)
+Node.js Backend API untuk Lead Scoring System menggunakan Express.js, PostgreSQL, dan integrasi ML Service.
 
----
-
-## 📋 Project Overview
-
-Backend Express.js untuk memprediksi dan memprioritaskan nasabah bank yang potensial berlangganan deposito berjangka menggunakan Machine Learning.
-
-**Tech Stack:**
-- Express.js 5.x
-- PostgreSQL 14+ / Supabase
-- JWT Authentication
-- Axios (ML Service integration)
-- Multer (File upload)
-- CSV Parser
-- Node-Cache (In-memory caching)
-- Node-Cron (Scheduled jobs)
+**Team A25-CS060** - Capstone Project Bangkit 2024
 
 ---
 
-## ✨ Features
+## 📋 Daftar Isi
 
-### Authentication & Authorization
-- ✅ JWT-based authentication
-- ✅ Role-Based Access Control (RBAC)
-  - **Admin:** Can register new users + all features
-  - **Sales:** Cannot register users, but all other features available
-  - **Manager:** Same as admin (future use)
+- [Fitur](#-fitur)
+- [Teknologi](#-teknologi)
+- [Setup & Instalasi](#-setup--instalasi)
+- [Konfigurasi Environment](#-konfigurasi-environment)
+- [Database Schema](#-database-schema)
+- [API Documentation](#-api-documentation)
+- [Auto-Predict Cron Jobs](#-auto-predict-cron-jobs)
+- [Testing](#-testing)
+- [Troubleshooting](#-troubleshooting)
 
-**IMPORTANT:** Sales dan Admin punya akses yang SAMA ke semua fitur (CRUD customers, predictions, upload CSV, dll). Perbedaannya HANYA admin bisa register user baru.
+## ✨ Fitur
 
-### Customer Management
-- ✅ Full CRUD operations (Admin & Sales)
-- ✅ **CSV Bulk Upload** - Import ratusan/ribuan customers (Admin & Sales)
-- ✅ **Advanced Search & Filter:**
-  - Age range (min/max)
-  - Job, education, marital status
-  - Loan status (housing, personal, default)
-  - Text search
-- ✅ Pagination (max 100 per page)
-- ✅ Sorting (multiple columns)
-- ✅ Statistics & analytics
+- **RESTful API** - Endpoints untuk customer, prediction, dan authentication
+- **JWT Authentication** - Secure token-based authentication
+- **Role-Based Access Control (RBAC)** - Admin & Sales roles
+- **Database Connection Pooling** - Optimal PostgreSQL performance
+- **In-Memory Caching** - Fast data access dengan node-cache
+- **Auto-Predict Cron Jobs** - Scheduled automatic predictions
+- **CSV Upload** - Bulk customer import
+- **ML Service Integration** - Seamless prediction dengan Python ML service
+- **Error Handling** - Comprehensive error responses
 
-### ML Predictions
-- ✅ Single customer prediction
-- ✅ Batch predictions
-- ✅ Top leads ranking (highest probability score)
-- ✅ Prediction history per customer
-- ✅ Prediction statistics
+## 🛠️ Teknologi
 
-### Auto Predict System (NEW in v3.0)
-- ✅ **Cron Job** - Auto predict setiap 2 menit
-- ✅ **In-memory Cache** - Reduce redundant ML calls
-- ✅ **Trigger on Create** - Customer baru otomatis diprediksi
-- ✅ **Trigger on Update** - Prediksi ulang saat data berubah
-- ✅ **Trigger on CSV Upload** - Batch predict setelah import
-- ✅ **Manual Trigger** - API endpoint untuk trigger manual
-- ✅ **Job Status Monitoring** - Monitor status & cache statistics
+- **Runtime**: Node.js v18+ (ES Modules)
+- **Framework**: Express.js v5
+- **Database**: PostgreSQL v14+
+- **Authentication**: JWT (jsonwebtoken)
+- **Security**: Helmet, CORS, bcryptjs
+- **Caching**: node-cache
+- **Scheduling**: node-cron
+- **File Upload**: Multer
+- **CSV Parsing**: csv-parse
+- **HTTP Client**: axios
 
-### Integration
-- ✅ Flask ML Service (LightGBM model)
-- ✅ Automatic preprocessing (14 → 51 features)
-- ✅ Real-time predictions
-- ✅ Supabase PostgreSQL support
+## 🚀 Setup & Instalasi
 
----
-
-## 🚀 Quick Start
-
-### Prerequisites
+### 1. Install Dependencies
 ```bash
-Node.js 18+
-PostgreSQL 14+
-npm or yarn
-```
-
-### Installation
-
-```bash
-# 1. Install dependencies
+cd backend
 npm install
+```
 
-# 2. Setup environment
-cp .env.example .env
-# Edit .env with your config
-
-# 3. Create database
+### 2. Setup Database
+```bash
+# Login ke PostgreSQL
 psql -U postgres
-CREATE DATABASE lead_scoring_db;
+
+# Buat database
+CREATE DATABASE leadscoring;
+
+# Exit
 \q
+```
 
-# 4. Run schema
-psql -U postgres lead_scoring_db < database/schema.sql
+### 3. Configure Environment
+```bash
+# Copy template .env
+cp .env.example .env
 
-# 5. Seed database (creates admin user)
+# Edit .env dengan text editor
+nano .env
+```
+
+### 4. Seed Database (First Time Only)
+```bash
 npm run seed
-
-# 6. Start server
-npm run dev
 ```
 
-**Server:** http://localhost:3001
-
----
-
-## 📡 API Endpoints (21 Total)
-
-### Authentication (5)
+Output expected:
 ```
-POST   /api/v1/auth/login              Login (returns JWT)
-POST   /api/v1/auth/register           Register user (Admin only) ⭐
-GET    /api/v1/auth/me                 Get profile
-POST   /api/v1/auth/logout             Logout
-GET    /api/v1/health                  Health check
+✅ Database seeded successfully
+✅ Created 2 users (admin & sales)
+✅ Imported 48 customers
 ```
 
-⭐ = Admin only endpoint
+### 5. Start Server
+```bash
+# Development mode
+npm start
 
-### Customers (8) - All Authenticated Users
-```
-GET    /api/v1/customers               List all
-GET    /api/v1/customers/:id           Get by ID
-POST   /api/v1/customers               Create
-PUT    /api/v1/customers/:id           Update
-DELETE /api/v1/customers/:id           Delete
-GET    /api/v1/customers/stats         Statistics
-POST   /api/v1/customers/upload-csv    Upload CSV
-GET    /api/v1/customers/csv-template  Download template
+# Production mode
+NODE_ENV=production npm start
 ```
 
-### Predictions (5) - All Authenticated Users
-```
-POST   /api/v1/predictions/customer/:id         Predict single
-POST   /api/v1/predictions/batch                Batch predict
-GET    /api/v1/predictions/top-leads            Top leads
-GET    /api/v1/predictions/stats                Statistics
-GET    /api/v1/predictions/customer/:id/history History
-```
+Server akan berjalan di `http://localhost:3001`
 
-### Auto Predict Jobs (3) - All Authenticated Users (NEW)
-```
-GET    /api/v1/predictions/job/status           Get job status & cache stats
-GET    /api/v1/predictions/cache/stats          Get cache statistics
-POST   /api/v1/predictions/job/trigger          Manual trigger auto predict
-```
+## ⚙️ Konfigurasi Environment
 
----
-
-## 🔐 RBAC (Role-Based Access Control)
-
-### Simple Rules:
-
-**Admin:**
-- ✅ Can register new users (sales/admin/manager)
-- ✅ All other features (same as sales)
-
-**Sales:**
-- ❌ Cannot register new users
-- ✅ All other features (CRUD customers, predictions, upload CSV, etc)
-
-**Manager:**
-- Same as Admin (for future use)
-
-### Implementation:
-- **Only 1 endpoint** protected: `POST /auth/register` (admin only)
-- **All other endpoints:** Require authentication only (no role check)
-
----
-
-## 🔧 Environment Variables
+File `.env` di root folder backend:
 
 ```env
-# Server
+# Server Configuration
 PORT=3001
-HOST=0.0.0.0
 NODE_ENV=development
 
-# Database - Option 1: Supabase (Recommended)
-DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=leadscoring
+DB_USER=postgres
+DB_PASSWORD=your_password_here
 
-# Database - Option 2: Local PostgreSQL
-# DB_USER=postgres
-# DB_HOST=localhost
-# DB_NAME=lead_scoring_db
-# DB_PASSWORD=your_password
-# DB_PORT=5432
-
-# JWT
-JWT_SECRET=your_jwt_secret_key_change_in_production
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-here-minimum-32-characters
 JWT_EXPIRES_IN=24h
 
-# ML Service (Flask) - Port 5050
-ML_SERVICE_URL=http://localhost:5050
-ML_API_TIMEOUT=10000
+# ML Service Configuration
+ML_SERVICE_URL=http://localhost:5000
 
-# Auto Predict Configuration (NEW in v3.0)
+# Auto-Predict Cron Configuration
 ENABLE_AUTO_PREDICT_CRON=true
-AUTO_PREDICT_CRON=*/2 * * * *
-AUTO_PREDICT_BATCH_SIZE=50
+AUTO_PREDICT_CRON=*/2 * * * *  # Every 2 minutes
+CACHE_CLEANUP_CRON=0 * * * *   # Every hour
+
+# Cache Configuration
+CACHE_TTL=300  # 5 minutes (in seconds)
 ```
 
----
+### Environment Variables Explained
 
-## 👥 Default Users (after seed)
-
-```javascript
-// Admin - Can register users + all features
-{
-  email: "admin@leadscoring.com",
-  password: "Admin123!",
-  role: "admin"
-}
-
-// Sales - Cannot register users, but all other features available
-{
-  email: "sales1@leadscoring.com",
-  password: "Admin123!",
-  role: "sales"
-}
-```
-
-**Note:** Password has been updated to `Admin123!` for better security.
-
----
-
-## 📊 CSV Bulk Upload
-
-### Download Template
-```bash
-GET /api/v1/customers/csv-template
-```
-
-### CSV Format (14 columns required)
-```csv
-age,job,marital,education,default,housing,loan,contact,month,day_of_week,campaign,pdays,previous,poutcome
-30,technician,married,secondary,false,true,false,cellular,may,mon,2,999,0,unknown
-45,management,single,tertiary,false,false,false,telephone,jun,fri,1,999,0,success
-```
-
-### Upload CSV (Admin & Sales)
-```bash
-POST /api/v1/customers/upload-csv
-Content-Type: multipart/form-data
-Authorization: Bearer <token>
-
-Field name: csvfile
-Max size: 10MB
-```
-
-### Response
-```json
-{
-  "success": true,
-  "summary": {
-    "totalRecordsInFile": 100,
-    "validRecords": 95,
-    "invalidRecordsDuringValidation": 5,
-    "successfullyCreated": 94,
-    "failedToCreate": 1
-  },
-  "created": [...],
-  "validationErrors": [...],
-  "insertionErrors": [...]
-}
-```
-
----
-
-## 🔍 Advanced Search & Filter
-
-```bash
-GET /api/v1/customers?minAge=30&maxAge=50&job=technician&housing=true&page=1&limit=20&sortBy=age&order=DESC
-```
-
-**Query Parameters:**
-- `minAge`, `maxAge` - Age range
-- `job` - Specific job
-- `education` - Education level
-- `marital` - Marital status
-- `housing` - Housing loan (true/false)
-- `loan` - Personal loan (true/false)
-- `hasDefault` - Default status (true/false)
-- `search` - Text search (job/education/marital)
-- `page` - Page number (default: 1)
-- `limit` - Items per page (max: 100)
-- `sortBy` - Sort column (id, age, job, education)
-- `order` - ASC or DESC
-
----
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | 3001 |
+| `NODE_ENV` | Environment mode | development |
+| `DB_HOST` | PostgreSQL host | localhost |
+| `DB_PORT` | PostgreSQL port | 5432 |
+| `DB_NAME` | Database name | leadscoring |
+| `DB_USER` | Database user | postgres |
+| `DB_PASSWORD` | Database password | - |
+| `JWT_SECRET` | Secret key untuk JWT | - |
+| `JWT_EXPIRES_IN` | Token expiry time | 24h |
+| `ML_SERVICE_URL` | ML service endpoint | http://localhost:5000 |
+| `ENABLE_AUTO_PREDICT_CRON` | Enable/disable cron | true |
+| `AUTO_PREDICT_CRON` | Cron schedule | */2 * * * * |
+| `CACHE_TTL` | Cache TTL (seconds) | 300 |
 
 ## 🗄️ Database Schema
 
-### Tables (3)
-
-**users**
+### Table: `users`
 ```sql
-id, email, password, role, created_at, updated_at
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  role VARCHAR(50) NOT NULL DEFAULT 'sales',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-**customers**
+**Default Users:**
+- Admin: `admin@leadscoring.com` / `password123`
+- Sales: `sales1@leadscoring.com` / `password123`
+
+### Table: `customers`
 ```sql
-id, age, job, marital, education,
-has_default, has_housing_loan, has_personal_loan,
-contact, month, day_of_week,
-campaign, pdays, previous, poutcome,
-created_at, updated_at
+CREATE TABLE customers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  age INTEGER NOT NULL,
+  job VARCHAR(100),
+  marital VARCHAR(50),
+  education VARCHAR(100),
+  has_default BOOLEAN DEFAULT false,
+  has_housing_loan BOOLEAN DEFAULT false,
+  has_personal_loan BOOLEAN DEFAULT false,
+  contact VARCHAR(50),
+  month VARCHAR(20),
+  day_of_week VARCHAR(20),
+  campaign INTEGER,
+  pdays INTEGER,
+  previous INTEGER,
+  poutcome VARCHAR(50),
+  balance DECIMAL(15, 2) DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-**predictions**
+### Table: `predictions`
 ```sql
-id, customer_id (FK), probability_score, will_subscribe,
-model_version, predicted_at
+CREATE TABLE predictions (
+  id SERIAL PRIMARY KEY,
+  customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+  probability_score DECIMAL(5, 4) NOT NULL,
+  will_subscribe BOOLEAN NOT NULL,
+  model_version VARCHAR(50) DEFAULT 'v1.0',
+  predicted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
----
+## 📡 API Documentation
+
+Base URL: `http://localhost:3001/api/v1`
+
+### Authentication
+
+#### Login
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@leadscoring.com",
+  "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@leadscoring.com",
+      "role": "admin"
+    }
+  }
+}
+```
+
+#### Register
+```http
+POST /auth/register
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "role": "sales"
+}
+```
+
+### Customer Management
+
+#### Get All Customers (with Advanced Filters)
+```http
+GET /customers?page=1&limit=20
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `search` | string | Search in name, job, education, marital | `?search=John` |
+| `minAge` | number | Minimum age filter | `?minAge=30` |
+| `maxAge` | number | Maximum age filter | `?maxAge=50` |
+| `job` | string | Filter by job | `?job=technician` |
+| `education` | string | Filter by education | `?education=secondary` |
+| `marital` | string | Filter by marital status | `?marital=married` |
+| `housing` | boolean | Filter by housing loan | `?housing=true` |
+| `loan` | boolean | Filter by personal loan | `?loan=false` |
+| `hasDefault` | boolean | Filter by default status | `?hasDefault=false` |
+| `page` | number | Page number | `?page=1` |
+| `limit` | number | Items per page (max 100) | `?limit=20` |
+| `sortBy` | string | Sort column | `?sortBy=probability_score` |
+| `order` | string | Sort order (ASC/DESC) | `?order=DESC` |
+
+**Examples:**
+```bash
+# Search by name
+GET /customers?search=John
+
+# Age range filter
+GET /customers?minAge=30&maxAge=50
+
+# Combined filters
+GET /customers?marital=married&education=secondary&housing=true
+
+# High priority leads (sorted by score)
+GET /customers?sortBy=probability_score&order=DESC&limit=10
+```
+
+#### Get Customer Stats
+```http
+GET /customers/stats
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalCustomers": 48,
+    "avgAge": "37.1",
+    "withHousingLoan": 23,
+    "withPersonalLoan": 15,
+    "uniqueJobs": 11,
+    "pendingCalls": 0,
+    "monthlyConversions": 7,
+    "monthlyTrend": [...]
+  }
+}
+```
+
+#### Create Customer
+```http
+POST /customers
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "age": 30,
+  "job": "technician",
+  "marital": "married",
+  "education": "secondary",
+  "has_default": false,
+  "has_housing_loan": true,
+  "has_personal_loan": false,
+  "contact": "cellular",
+  "campaign": 2,
+  "pdays": 999,
+  "previous": 0,
+  "poutcome": "unknown"
+}
+```
+
+#### Upload CSV
+```http
+POST /customers/upload-csv
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+Form Data:
+- csvfile: <file>
+```
+
+**CSV Format:**
+```csv
+name,age,job,marital,education,has_default,has_housing_loan,has_personal_loan,contact,month,day_of_week,campaign,pdays,previous,poutcome
+John Doe,30,technician,married,secondary,no,yes,no,cellular,may,mon,2,999,0,unknown
+```
+
+### Predictions
+
+#### Get Prediction Statistics
+```http
+GET /predictions/stats
+Authorization: Bearer <token>
+```
+
+**Response (camelCase format):**
+```json
+{
+  "success": true,
+  "data": {
+    "totalPredictions": 48,
+    "averageScore": "0.34",
+    "positivePredictions": 7,
+    "negativePredictions": 41,
+    "highestScore": "0.59",
+    "lowestScore": "0.11",
+    "highPriorityCount": 0,
+    "mediumPriorityCount": 7,
+    "lowPriorityCount": 41,
+    "customersWithPredictions": 48,
+    "customersWithoutPredictions": 0,
+    "conversionRate": "14.58"
+  }
+}
+```
+
+#### Get Top Leads
+```http
+GET /predictions/top-leads?limit=6&threshold=0.5
+Authorization: Bearer <token>
+```
+
+**Parameters:**
+- `limit`: Number of leads (default: 50, max: 200)
+- `threshold`: Minimum probability score (default: 0.5)
+
+#### Predict Single Customer
+```http
+POST /predictions/customer/:id
+Authorization: Bearer <token>
+```
+
+#### Batch Predict
+```http
+POST /predictions/batch
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "limit": 100
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "summary": {
+      "total": 100,
+      "success": 98,
+      "failed": 2
+    },
+    "results": [...]
+  }
+}
+```
+
+### Auto-Predict Jobs
+
+#### Get Job Status
+```http
+GET /predictions/job/status
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "isRunning": false,
+    "cronEnabled": true,
+    "lastRunTime": "2025-11-30T07:40:00.124Z",
+    "nextRunTime": "2025-11-30T07:42:00.124Z",
+    "cronSchedule": "*/2 * * * *",
+    "totalRuns": 17,
+    "lastResult": {
+      "total": 0,
+      "success": 0,
+      "failed": 0
+    },
+    "cacheStats": {
+      "hits": 17,
+      "misses": 0,
+      "hitRate": "100.00%"
+    }
+  }
+}
+```
+
+#### Manual Trigger
+```http
+POST /predictions/job/trigger
+Authorization: Bearer <token>
+```
+
+## 🤖 Auto-Predict Cron Jobs
+
+### Auto-Predict Job
+**Schedule**: Every 2 minutes (`*/2 * * * *`)
+
+**Workflow:**
+1. Check if job is already running (prevent overlap)
+2. Query customers without predictions
+3. Check ML service health
+4. Send batch prediction request to ML service
+5. Save results to database
+6. Update cache
+7. Log results
+
+**Configuration:**
+```env
+ENABLE_AUTO_PREDICT_CRON=true
+AUTO_PREDICT_CRON=*/2 * * * *
+```
+
+**Disable cron job:**
+```env
+ENABLE_AUTO_PREDICT_CRON=false
+```
+
+### Cache Stats Job
+**Schedule**: Every hour (`0 * * * *`)
+
+Logs cache statistics:
+- Total hits/misses
+- Hit rate percentage
+- Cached predictions count
 
 ## 🧪 Testing
 
+### Health Check
 ```bash
-# Run all tests
-./tests/test-api-week2.sh
-
-# Manual test - Login as admin
-curl -X POST http://localhost:3001/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@leadscoring.com","password":"Admin123!"}'
-
-# Test CSV upload (should work!)
-curl -X POST http://localhost:3001/api/v1/customers/upload-csv \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -F "csvfile=@customers.csv"
-
-# Test auto predict job status (NEW in v3.0)
-curl -X GET http://localhost:3001/api/v1/predictions/job/status \
-  -H "Authorization: Bearer YOUR_TOKEN"
-
-# Manually trigger auto predict (NEW in v3.0)
-curl -X POST http://localhost:3001/api/v1/predictions/job/trigger \
-  -H "Authorization: Bearer YOUR_TOKEN"
+curl http://localhost:3001/api/v1/health
 ```
 
----
+### Login & Get Token
+```bash
+curl -X POST http://localhost:3001/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@leadscoring.com","password":"password123"}'
+```
+
+### Test Customer Endpoints
+```bash
+# Set your token
+TOKEN="your-jwt-token-here"
+
+# Get all customers
+curl -X GET "http://localhost:3001/api/v1/customers?page=1&limit=10" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Test search by name
+curl -X GET "http://localhost:3001/api/v1/customers?search=John" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Test age range filter
+curl -X GET "http://localhost:3001/api/v1/customers?minAge=30&maxAge=50" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Test job filter
+curl -X GET "http://localhost:3001/api/v1/customers?job=technician&limit=5" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Test combined filters
+curl -X GET "http://localhost:3001/api/v1/customers?marital=married&education=secondary&housing=true" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Test Prediction Endpoints
+```bash
+# Get prediction stats
+curl -X GET "http://localhost:3001/api/v1/predictions/stats" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get top leads
+curl -X GET "http://localhost:3001/api/v1/predictions/top-leads?limit=10&threshold=0.5" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get job status
+curl -X GET "http://localhost:3001/api/v1/predictions/job/status" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+## 🐛 Troubleshooting
+
+### Database Connection Error
+```
+Error: Error in pool connection
+```
+
+**Solutions:**
+1. Verify PostgreSQL is running:
+   ```bash
+   # Windows
+   pg_ctl status
+
+   # Linux/Mac
+   sudo systemctl status postgresql
+   ```
+
+2. Check database credentials in `.env`
+3. Ensure database `leadscoring` exists:
+   ```bash
+   psql -U postgres -l | grep leadscoring
+   ```
+
+### ML Service Connection Error
+```
+Error: ML Service unavailable
+```
+
+**Solutions:**
+1. Check if ML service is running on port 5000
+2. Verify `ML_SERVICE_URL` in `.env`
+3. Check ML service logs
+4. Auto-predict will skip if ML service is down (graceful failure)
+
+### Port Already in Use
+```
+Error: listen EADDRINUSE: address already in use :::3001
+```
+
+**Solutions:**
+```bash
+# Windows
+netstat -ano | findstr :3001
+taskkill /F /PID <PID>
+
+# Linux/Mac
+lsof -i :3001
+kill -9 <PID>
+```
+
+### JWT Token Invalid/Expired
+```
+Error: Token expired or invalid
+```
+
+**Solutions:**
+1. Login again to get new token
+2. Check `JWT_SECRET` in `.env`
+3. Verify token is included in Authorization header:
+   ```
+   Authorization: Bearer <token>
+   ```
+
+### Cron Job Not Running
+```
+[CronJob] Auto predict cron is disabled
+```
+
+**Solutions:**
+1. Check `ENABLE_AUTO_PREDICT_CRON=true` in `.env`
+2. Restart server after changing `.env`
+3. Check logs for cron job messages
+
+### CSV Upload Failed
+```
+Error: Invalid CSV format
+```
+
+**Solutions:**
+1. Ensure CSV has correct headers
+2. Check boolean values: `yes`/`no` or `true`/`false`
+3. Verify file encoding is UTF-8
+4. Check file size (max 10MB)
 
 ## 📁 Project Structure
 
 ```
 backend/
-├── src/
-│   ├── config/              # Database & ML service config
-│   ├── controllers/         # Business logic
-│   ├── jobs/                # Cron jobs (NEW in v3.0)
-│   │   └── predictionJob.js # Auto predict scheduler
-│   ├── middlewares/         # Auth, RBAC, upload, error handling
-│   ├── routes/              # API routes
-│   ├── services/            # Database operations
-│   │   ├── autoPredictService.js  # Auto predict logic (NEW)
-│   │   └── cacheService.js        # In-memory cache (NEW)
-│   └── utils/               # Helpers, validators, CSV parser
-│
 ├── database/
-│   ├── schema.sql           # Database schema
-│   └── seed.js              # Sample data & admin user
-│
-├── tests/
-│   └── test-api-week2.sh    # API tests
-│
-├── .env.example             # Environment template
-├── package.json             # Dependencies
-└── README.md                # This file
+│   └── seed.js              # Database seeder
+├── src/
+│   ├── config/
+│   │   ├── database.js      # PostgreSQL config
+│   │   └── mlService.js     # ML service config
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── customerController.js
+│   │   └── predictionController.js
+│   ├── jobs/
+│   │   └── predictionJob.js # Cron jobs
+│   ├── middlewares/
+│   │   ├── authMiddleware.js
+│   │   ├── rbacMiddleware.js
+│   │   ├── uploadMiddleware.js
+│   │   └── errorHandler.js
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── customerRoutes.js
+│   │   └── predictionRoutes.js
+│   ├── services/
+│   │   ├── customerService.js
+│   │   ├── predictionService.js
+│   │   ├── autoPredictService.js
+│   │   ├── cacheService.js
+│   │   └── mlService.js
+│   ├── utils/
+│   │   ├── response.js
+│   │   └── validators.js
+│   └── index.js             # Entry point
+├── uploads/                 # CSV upload folder
+├── .env                     # Environment variables
+├── .env.example            # Template
+├── package.json
+└── README.md               # This file
 ```
 
----
+## ✅ Recent Updates (30 Nov 2025)
 
-## 🔐 Security Features
-
-- ✅ **JWT Authentication** - Secure token-based auth
-- ✅ **RBAC** - Admin-only registration
-- ✅ **Password Hashing** - bcryptjs with salt
-- ✅ **Helmet** - Security headers
-- ✅ **CORS** - Configured for frontend
-- ✅ **SQL Injection Protection** - Parameterized queries
-- ✅ **Input Validation** - All inputs validated
-- ✅ **File Upload Security** - Type & size validation
+1. ✅ **Search by Name** - Added name field to search query
+2. ✅ **Advanced Filters** - Full support for multi-parameter filtering
+3. ✅ **Cron Job Tracking** - Added totalRuns and lastRunTime
+4. ✅ **Response Format** - Standardized camelCase for consistency
+5. ✅ **Error Handling** - Improved error messages
 
 ---
 
-## 🤝 ML Service Integration
+**Status**: ✅ Backend Running | Database Connected | Auto-Predict Active
 
-**Requirements:**
-- Flask ML service running on port 5050
-- LightGBM model (51 features)
-
-**Flow:**
-```
-Express Backend → Flask ML Service → LightGBM Model
-      ↓                    ↓
-PostgreSQL ←───── Prediction Result
-      ↓
-Return to User
-```
-
----
-
-## 📊 Response Format
-
-**Success:**
-```json
-{
-  "success": true,
-  "message": "Operation successful",
-  "data": { ... }
-}
-```
-
-**Error:**
-```json
-{
-  "success": false,
-  "error": "Error type",
-  "message": "Description"
-}
-```
-
----
-
-## 🐛 Troubleshooting
-
-**Database connection failed:**
-```bash
-sudo systemctl start postgresql
-```
-
-**ML service unavailable:**
-```bash
-cd ml-service
-python app.py  # Make sure it's running on port 5050
-```
-
-**Permission denied (RBAC):**
-- Only happens on `/auth/register` if you're not admin
-- All other endpoints work for both admin & sales
-
-**CSV upload failed:**
-- Check file format (14 columns required)
-- Check file size (max 10MB)
-- Download template first
-
----
-
-## 📝 NPM Scripts
-
-```bash
-npm run dev        # Development with watch
-npm start          # Production
-npm run seed       # Seed database
-npm run lint       # ESLint check
-npm run lint:fix   # Fix ESLint issues
-```
-
----
-
-## ⚠️ Important Notes
-
-### RBAC Clarification
-**Admin vs Sales:**
-- **Admin:** Can register new users
-- **Sales:** Cannot register new users
-- **All other features:** SAMA untuk admin dan sales
-
-Tidak ada pembatasan read-only untuk sales. Sales bisa full CRUD customers, upload CSV, predictions, dll.
-
-### Admin-Only Registration
-Registration endpoint is **admin-only**. First admin must be created via seed:
-```bash
-npm run seed
-```
-
-### ML Service Port
-Service now runs on **port 5050** (not 5000) to avoid conflicts.
-
----
-
-## 🎯 What's New in v3.0
-
-### Major Features
-1. **Auto Predict System** - Otomatis prediksi customer tanpa manual trigger
-2. **Cron Job Scheduler** - Background job setiap 2 menit
-3. **In-memory Caching** - Reduce redundant ML calls dengan node-cache
-4. **Event-driven Triggers** - Auto predict saat create/update/CSV upload
-5. **Supabase Integration** - Cloud PostgreSQL database support
-
-### Auto Predict Triggers
-- **On Customer Create** - Customer baru langsung diprediksi
-- **On Customer Update** - Cache dihapus, prediksi ulang
-- **On CSV Upload** - Batch predict semua customer yang diimport
-- **Cron Job** - Auto scan customers tanpa prediksi setiap 2 menit
-- **Manual Trigger** - API endpoint untuk trigger manual
-
-### New API Endpoints (3)
-- `GET /api/v1/predictions/job/status` - Status cron job & cache
-- `GET /api/v1/predictions/cache/stats` - Cache statistics
-- `POST /api/v1/predictions/job/trigger` - Manual trigger
-
-### Technical Changes
-- Added: node-cache (in-memory caching)
-- Added: node-cron (scheduled jobs)
-- Added: autoPredictService.js (auto predict logic)
-- Added: cacheService.js (cache management)
-- Added: predictionJob.js (cron scheduler)
-- Updated: DATABASE_URL support for Supabase
-- Updated: Port changed to 3001
-- Updated: Password to Admin123!
-
----
-
-## 📜 Previous Versions
-
-### v2.5 Features
-1. **CSV Bulk Upload** - Import ribuan customers sekaligus
-2. **Simple RBAC** - Admin-only registration, all else same
-3. **Advanced Filters** - 8 query parameters untuk filtering
-4. **Secure User Management** - Only admin can create users
-
----
-
-## 📞 Support
-
-**Issues:** Check troubleshooting section  
-**Questions:** Review API documentation  
-**ML Service:** See ml-service/README.md
-
----
-
-**Team:** A25-CS060 (Accenture x Dicoding - Asah Program)
-**Version:** 3.0 (Auto Predict & Caching)
-**Status:** ✅ Production Ready
-**Last Updated:** November 22, 2025
+*Last Updated: 30 November 2025*
