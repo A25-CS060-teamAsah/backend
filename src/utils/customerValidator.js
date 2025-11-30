@@ -55,7 +55,7 @@ const VALID_MONTHS = [
 
 const VALID_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
 
-const VALID_POUTCOME = ['failure', 'nonexistent', 'success'];
+const VALID_POUTCOME = ['failure', 'nonexistent', 'success', 'unknown'];
 
 /**
  * Validate customer data

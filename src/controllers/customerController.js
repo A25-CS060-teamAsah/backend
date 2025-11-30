@@ -123,6 +123,13 @@ export const createCustomerHandler = async (req, res) => {
   try {
     const customerData = req.body;
 
+    // Map 'full_name' to 'name' for database compatibility
+    if (customerData.full_name && !customerData.name) {
+      customerData.name = customerData.full_name;
+    }
+    // Remove full_name to avoid sending it to database
+    delete customerData.full_name;
+
     // Validate customer data
     const validation = validateCustomerData(customerData);
     if (!validation.isValid) {
@@ -157,6 +164,13 @@ export const updateCustomerHandler = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+
+    // Map 'full_name' to 'name' for database compatibility
+    if (updates.full_name && !updates.name) {
+      updates.name = updates.full_name;
+    }
+    // Remove full_name to avoid sending it to database
+    delete updates.full_name;
 
     // Validate ID
     if (!id || isNaN(id)) {
@@ -234,16 +248,27 @@ export const deleteCustomerHandler = async (req, res) => {
 export const getCustomerStatsHandler = async (req, res) => {
   try {
     const stats = await getCustomerStats();
+    console.log('📊 Raw stats from service:', stats);
 
-    return sendSuccess(res, {
-      ...stats,
-      total_customers: parseInt(stats.total_customers),
-      avg_age: parseFloat(stats.avg_age).toFixed(1),
-      with_housing_loan: parseInt(stats.with_housing_loan),
-      with_personal_loan: parseInt(stats.with_personal_loan),
-      unique_jobs: parseInt(stats.unique_jobs),
-      unique_education_levels: parseInt(stats.unique_education_levels),
-    });
+    const responseData = {
+      totalCustomers: parseInt(stats.total_customers),
+      avgAge: parseFloat(stats.avg_age).toFixed(1),
+      withHousingLoan: parseInt(stats.with_housing_loan),
+      withPersonalLoan: parseInt(stats.with_personal_loan),
+      uniqueJobs: parseInt(stats.unique_jobs),
+      uniqueEducationLevels: parseInt(stats.unique_education_levels),
+      pendingCalls: stats.pending_calls || 0,
+      monthlyConversions: stats.monthly_conversions || 0,
+      monthlyTrend: (stats.monthly_trend || []).map(item => ({
+        month: item.month,
+        total: parseInt(item.total),
+        highPriority: parseInt(item.high_priority || 0),
+        avgScore: parseFloat(item.avg_score || 0),
+      })),
+    };
+
+    console.log('📤 Sending response:', responseData);
+    return sendSuccess(res, responseData);
   } catch (error) {
     console.error('Get customer stats error:', error);
     return sendError(res, 'Failed to retrieve statistics', 500);

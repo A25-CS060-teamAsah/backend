@@ -21,6 +21,7 @@ CREATE TABLE users (
 CREATE TABLE customers (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
+  balance DECIMAL(12,2) DEFAULT 0,
   age INTEGER NOT NULL CHECK (age >= 18 AND age <= 100),
   job VARCHAR(50),
   marital VARCHAR(20),
@@ -56,6 +57,7 @@ CREATE INDEX idx_predictions_customer_id ON predictions(customer_id);
 CREATE INDEX idx_customers_id ON customers(id);
 CREATE INDEX idx_customers_job ON customers(job);
 CREATE INDEX idx_customers_education ON customers(education);
+CREATE INDEX idx_customers_balance ON customers(balance);
 CREATE INDEX idx_users_email ON users(email);
 
 -- Function untuk auto-update updated_at
@@ -78,5 +80,6 @@ CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers
 COMMENT ON TABLE users IS 'Tabel untuk menyimpan data user (admin & sales)';
 COMMENT ON TABLE customers IS 'Tabel untuk menyimpan data nasabah bank';
 COMMENT ON TABLE predictions IS 'Tabel untuk menyimpan hasil prediksi ML';
+COMMENT ON COLUMN customers.balance IS 'Customer account balance in dollars';
 COMMENT ON COLUMN predictions.probability_score IS 'Skor probabilitas nasabah akan subscribe (0-1)';
 COMMENT ON COLUMN predictions.will_subscribe IS 'Prediksi apakah nasabah akan subscribe';

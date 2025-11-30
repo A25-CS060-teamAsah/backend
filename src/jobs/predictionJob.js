@@ -14,6 +14,8 @@ import { getCacheStats, getAutoPredictStatus } from '../services/cacheService.js
 // Job status
 let isJobRunning = false;
 let lastJobResult = null;
+let totalRuns = 0;
+let lastRunTime = null;
 
 // Configuration
 const AUTO_PREDICT_CRON = process.env.AUTO_PREDICT_CRON || '*/2 * * * *'; // Every 2 minutes
@@ -36,10 +38,14 @@ const autoPredictJob = cron.schedule(
     try {
       console.log('[CronJob] Running auto predict job...');
       lastJobResult = await autoPredictNewCustomers();
+      totalRuns++;
+      lastRunTime = new Date().toISOString();
       console.log('[CronJob] Auto predict job completed:', lastJobResult);
     } catch (error) {
       console.error('[CronJob] Auto predict job failed:', error.message);
       lastJobResult = { error: error.message, timestamp: new Date().toISOString() };
+      totalRuns++;
+      lastRunTime = new Date().toISOString();
     } finally {
       isJobRunning = false;
     }
@@ -96,15 +102,26 @@ export const stopCronJobs = () => {
  * @returns {Object} - Job status info
  */
 export const getJobStatus = () => {
+  const enableAutoPredictCron = process.env.ENABLE_AUTO_PREDICT_CRON !== 'false';
+
+  // Calculate next run time (approximate - every 2 minutes)
+  let nextRunTime = null;
+  if (lastRunTime && enableAutoPredictCron) {
+    const lastRun = new Date(lastRunTime);
+    const nextRun = new Date(lastRun.getTime() + 2 * 60 * 1000); // Add 2 minutes
+    nextRunTime = nextRun.toISOString();
+  }
+
   return {
     isRunning: isJobRunning,
+    cronEnabled: enableAutoPredictCron,
+    lastRunTime: lastRunTime,
+    nextRunTime: nextRunTime,
+    cronSchedule: AUTO_PREDICT_CRON,
+    totalRuns: totalRuns,
     lastResult: lastJobResult,
     autoPredictStatus: getAutoPredictStatus(),
     cacheStats: getCacheStats(),
-    schedules: {
-      autoPredict: AUTO_PREDICT_CRON,
-      cacheCleanup: CACHE_CLEANUP_CRON,
-    },
   };
 };
 
@@ -122,11 +139,15 @@ export const triggerManualPredictJob = async () => {
   try {
     console.log('[CronJob] Manual auto predict job triggered');
     lastJobResult = await autoPredictNewCustomers();
-    return lastJobResult;
+    totalRuns++;
+    lastRunTime = new Date().toISOString();
+    return { message: 'Auto-predict job completed successfully', results: lastJobResult };
   } catch (error) {
     console.error('[CronJob] Manual job failed:', error.message);
     lastJobResult = { error: error.message, timestamp: new Date().toISOString() };
-    return lastJobResult;
+    totalRuns++;
+    lastRunTime = new Date().toISOString();
+    throw error;
   } finally {
     isJobRunning = false;
   }

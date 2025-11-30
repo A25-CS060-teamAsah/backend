@@ -198,15 +198,20 @@ export const getPredictionStatsHandler = async (req, res) => {
     const stats = await getPredictionStats();
 
     return sendSuccess(res, {
-      totalPredictions: parseInt(stats.total_predictions),
-      averageScore: parseFloat(stats.avg_score || 0).toFixed(4),
-      positivePredictions: parseInt(stats.positive_predictions),
-      negativePredictions: parseInt(stats.negative_predictions),
-      highestScore: parseFloat(stats.highest_score || 0).toFixed(4),
-      lowestScore: parseFloat(stats.lowest_score || 0).toFixed(4),
+      totalPredictions: parseInt(stats.total_predictions || 0),
+      averageScore: parseFloat(stats.avg_score || 0).toFixed(2),
+      positivePredictions: parseInt(stats.positive_predictions || 0),
+      negativePredictions: parseInt(stats.negative_predictions || 0),
+      highestScore: parseFloat(stats.highest_score || 0).toFixed(2),
+      lowestScore: parseFloat(stats.lowest_score || 0).toFixed(2),
+      highPriorityCount: parseInt(stats.high_priority_count || 0),
+      mediumPriorityCount: parseInt(stats.medium_priority_count || 0),
+      lowPriorityCount: parseInt(stats.low_priority_count || 0),
+      customersWithPredictions: parseInt(stats.customers_with_predictions || 0),
+      customersWithoutPredictions: parseInt(stats.customers_without_predictions || 0),
       conversionRate: (
-        (parseInt(stats.positive_predictions) /
-          parseInt(stats.total_predictions)) *
+        (parseInt(stats.positive_predictions || 0) /
+          parseInt(stats.total_predictions || 1)) *
         100
       ).toFixed(2),
     });

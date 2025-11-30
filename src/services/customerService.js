@@ -47,11 +47,12 @@ export const getAllCustomers = async (options = {}) => {
 
     const queryParams = [];
 
-    // Add search filter (searches in job, education, marital)
+    // Add search filter (searches in name, job, education, marital)
     if (search) {
       queryParams.push(`%${search}%`);
-      query += ` AND (c.job ILIKE $${queryParams.length} 
-                  OR c.education ILIKE $${queryParams.length} 
+      query += ` AND (c.name ILIKE $${queryParams.length}
+                  OR c.job ILIKE $${queryParams.length}
+                  OR c.education ILIKE $${queryParams.length}
                   OR c.marital ILIKE $${queryParams.length})`;
     }
 
@@ -130,7 +131,13 @@ export const getAllCustomers = async (options = {}) => {
     query += ` LIMIT $${queryParams.length - 1} OFFSET $${queryParams.length}`;
 
     const result = await pool.query(query, queryParams);
-    return result.rows;
+
+    // Map 'name' to 'full_name' for frontend compatibility
+    return result.rows.map(row => ({
+      ...row,
+      full_name: row.name,
+      balance: row.balance || null // Add balance field (null if not exists)
+    }));
   } catch (error) {
     console.error('Error in getAllCustomers:', error);
     throw error;
@@ -159,11 +166,12 @@ export const countCustomers = async (options = {}) => {
     let query = 'SELECT COUNT(*) as total FROM customers WHERE 1=1';
     const queryParams = [];
 
-    // Add search filter
+    // Add search filter (searches in name, job, education, marital)
     if (search) {
       queryParams.push(`%${search}%`);
-      query += ` AND (job ILIKE $${queryParams.length} 
-                  OR education ILIKE $${queryParams.length} 
+      query += ` AND (name ILIKE $${queryParams.length}
+                  OR job ILIKE $${queryParams.length}
+                  OR education ILIKE $${queryParams.length}
                   OR marital ILIKE $${queryParams.length})`;
     }
 
@@ -243,7 +251,16 @@ export const getCustomerById = async (id) => {
     `;
 
     const result = await pool.query(query, [id]);
-    return result.rows.length > 0 ? result.rows[0] : null;
+
+    if (result.rows.length === 0) return null;
+
+    // Map 'name' to 'full_name' for frontend compatibility
+    const row = result.rows[0];
+    return {
+      ...row,
+      full_name: row.name,
+      balance: row.balance || null
+    };
   } catch (error) {
     console.error('Error in getCustomerById:', error);
     throw error;
@@ -259,6 +276,7 @@ export const createCustomer = async (customerData) => {
   try {
     const {
       name,
+      balance,
       age,
       job,
       marital,
@@ -281,17 +299,18 @@ export const createCustomer = async (customerData) => {
 
     const query = `
       INSERT INTO customers (
-        name, age, job, marital, education,
+        name, balance, age, job, marital, education,
         has_default, has_housing_loan, has_personal_loan,
         contact, month, day_of_week,
         campaign, pdays, previous, poutcome
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *
     `;
 
     const values = [
       name,
+      balance || 0,
       age,
       job,
       marital,
@@ -309,7 +328,14 @@ export const createCustomer = async (customerData) => {
     ];
 
     const result = await pool.query(query, values);
-    return result.rows[0];
+
+    // Map 'name' to 'full_name' for frontend compatibility
+    const row = result.rows[0];
+    return {
+      ...row,
+      full_name: row.name,
+      balance: row.balance || null
+    };
   } catch (error) {
     console.error('Error in createCustomer:', error);
     throw error;
@@ -326,16 +352,29 @@ export const updateCustomer = async (id, updates) => {
   try {
     // Transform API field names to database column names
     const fieldMapping = {
+      'full_name': 'name',
       'default': 'has_default',
       'housing': 'has_housing_loan',
       'loan': 'has_personal_loan'
     };
 
+    // Valid database columns that can be updated
+    const validColumns = [
+      'name', 'balance', 'age', 'job', 'marital', 'education',
+      'has_default', 'has_housing_loan', 'has_personal_loan',
+      'contact', 'month', 'day_of_week', 'campaign', 'pdays',
+      'previous', 'poutcome'
+    ];
+
     const transformedUpdates = {};
     Object.entries(updates).forEach(([key, value]) => {
       // Use mapped name if exists, otherwise use original key
       const dbKey = fieldMapping[key] || key;
-      transformedUpdates[dbKey] = value;
+
+      // Only include valid database columns
+      if (validColumns.includes(dbKey)) {
+        transformedUpdates[dbKey] = value;
+      }
     });
 
     const fields = [];
@@ -365,7 +404,16 @@ export const updateCustomer = async (id, updates) => {
     `;
 
     const result = await pool.query(query, values);
-    return result.rows.length > 0 ? result.rows[0] : null;
+
+    if (result.rows.length === 0) return null;
+
+    // Map 'name' to 'full_name' for frontend compatibility
+    const row = result.rows[0];
+    return {
+      ...row,
+      full_name: row.name,
+      balance: row.balance || null
+    };
   } catch (error) {
     console.error('Error in updateCustomer:', error);
     throw error;
@@ -418,7 +466,7 @@ export const getCustomersWithoutPredictions = async (limit = 100) => {
 export const getCustomerStats = async () => {
   try {
     const statsQuery = `
-      SELECT 
+      SELECT
         COUNT(*) as total_customers,
         AVG(age) as avg_age,
         COUNT(CASE WHEN has_housing_loan = true THEN 1 END) as with_housing_loan,
@@ -428,8 +476,54 @@ export const getCustomerStats = async () => {
       FROM customers
     `;
 
-    const result = await pool.query(statsQuery);
-    return result.rows[0];
+    // Get monthly trend data (last 6 months)
+    const monthlyTrendQuery = `
+      SELECT
+        TO_CHAR(c.created_at, 'Mon') as month,
+        COUNT(*) as total,
+        COUNT(CASE WHEN p.probability_score >= 0.75 THEN 1 END) as high_priority,
+        AVG(p.probability_score) as avg_score
+      FROM customers c
+      LEFT JOIN LATERAL (
+        SELECT probability_score
+        FROM predictions
+        WHERE customer_id = c.id
+        ORDER BY predicted_at DESC
+        LIMIT 1
+      ) p ON true
+      WHERE c.created_at >= NOW() - INTERVAL '6 months'
+      GROUP BY TO_CHAR(c.created_at, 'Mon'), DATE_TRUNC('month', c.created_at)
+      ORDER BY DATE_TRUNC('month', c.created_at) DESC
+      LIMIT 6
+    `;
+
+    // Get pending and conversions count
+    const pendingConversionsQuery = `
+      SELECT
+        COUNT(CASE WHEN p.probability_score IS NULL THEN 1 END) as pending_calls,
+        COUNT(CASE WHEN p.probability_score >= 0.5 THEN 1 END) as monthly_conversions
+      FROM customers c
+      LEFT JOIN LATERAL (
+        SELECT probability_score
+        FROM predictions
+        WHERE customer_id = c.id
+        ORDER BY predicted_at DESC
+        LIMIT 1
+      ) p ON true
+    `;
+
+    const [statsResult, trendResult, pendingResult] = await Promise.all([
+      pool.query(statsQuery),
+      pool.query(monthlyTrendQuery),
+      pool.query(pendingConversionsQuery),
+    ]);
+
+    return {
+      ...statsResult.rows[0],
+      monthly_trend: trendResult.rows.reverse(), // Reverse to get oldest to newest
+      pending_calls: parseInt(pendingResult.rows[0].pending_calls),
+      monthly_conversions: parseInt(pendingResult.rows[0].monthly_conversions),
+    };
   } catch (error) {
     console.error('Error in getCustomerStats:', error);
     throw error;

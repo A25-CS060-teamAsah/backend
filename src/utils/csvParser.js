@@ -27,6 +27,11 @@ const REQUIRED_COLUMNS = [
   'poutcome'
 ];
 
+// Optional CSV columns
+const OPTIONAL_COLUMNS = [
+  'balance'
+];
+
 /**
  * Parse CSV file buffer
  * @param {Buffer} fileBuffer - CSV file buffer
@@ -100,6 +105,7 @@ export const validateCSVRecords = (records) => {
     const processedRecord = {
       ...record,
       name: record.name,
+      balance: record.balance ? parseFloat(record.balance) : 0,
       default: convertToBoolean(record.default),
       housing: convertToBoolean(record.housing),
       loan: convertToBoolean(record.loan),
@@ -152,10 +158,11 @@ const convertToBoolean = (value) => {
  * @returns {String} CSV template
  */
 export const generateCSVTemplate = () => {
-  const header = REQUIRED_COLUMNS.join(',');
-  const example1 = 'John Doe,30,technician,married,secondary,false,true,false,cellular,may,mon,2,999,0,unknown';
-  const example2 = 'Jane Smith,45,management,single,tertiary,false,false,false,telephone,jun,fri,1,999,0,success';
-  const example3 = 'Bob Johnson,38,admin.,divorced,secondary,false,true,false,cellular,may,wed,3,999,0,nonexistent';
+  const allColumns = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS];
+  const header = allColumns.join(',');
+  const example1 = 'John Doe,1500.50,30,technician,married,secondary,false,true,false,cellular,may,mon,2,999,0,unknown';
+  const example2 = 'Jane Smith,2500.75,45,management,single,tertiary,false,false,false,telephone,jun,fri,1,999,0,success';
+  const example3 = 'Bob Johnson,850.25,38,admin.,divorced,secondary,false,true,false,cellular,may,wed,3,999,0,nonexistent';
 
   return `${header}\n${example1}\n${example2}\n${example3}`;
 };

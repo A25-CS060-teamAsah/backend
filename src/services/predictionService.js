@@ -125,14 +125,26 @@ export const getPredictionStats = async () => {
           will_subscribe
         FROM predictions
         ORDER BY customer_id, predicted_at DESC
+      ),
+      customer_counts AS (
+        SELECT
+          COUNT(DISTINCT c.id) as total_customers,
+          COUNT(DISTINCT lp.customer_id) as customers_with_predictions
+        FROM customers c
+        LEFT JOIN latest_predictions lp ON c.id = lp.customer_id
       )
-      SELECT 
+      SELECT
         COUNT(*) as total_predictions,
         AVG(probability_score) as avg_score,
         COUNT(CASE WHEN will_subscribe = true THEN 1 END) as positive_predictions,
         COUNT(CASE WHEN will_subscribe = false THEN 1 END) as negative_predictions,
         MAX(probability_score) as highest_score,
-        MIN(probability_score) as lowest_score
+        MIN(probability_score) as lowest_score,
+        COUNT(CASE WHEN probability_score >= 0.75 THEN 1 END) as high_priority_count,
+        COUNT(CASE WHEN probability_score >= 0.5 AND probability_score < 0.75 THEN 1 END) as medium_priority_count,
+        COUNT(CASE WHEN probability_score < 0.5 THEN 1 END) as low_priority_count,
+        (SELECT customers_with_predictions FROM customer_counts) as customers_with_predictions,
+        (SELECT total_customers - customers_with_predictions FROM customer_counts) as customers_without_predictions
       FROM latest_predictions
     `;
 
