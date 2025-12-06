@@ -34,6 +34,15 @@ if (process.env.NODE_ENV === 'development') {
 // API Routes
 app.use('/api/v1', routes);
 
+app.get('/', (res) => {
+  res.json({
+    success: true,
+    message: 'Lead Scoring Backend API is running',
+    docs: '/api/v1/health',
+    version: 'v1',
+  });
+});
+
 // 404 handler (must be after all routes)
 app.use(notFound);
 

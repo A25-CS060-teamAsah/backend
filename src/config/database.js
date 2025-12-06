@@ -24,6 +24,8 @@ const pool = new Pool(
         database: process.env.DB_NAME,
         password: process.env.DB_PASSWORD,
         port: process.env.DB_PORT || 5432,
+        // Enable SSL for Supabase Transaction Pooler in production
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
         max: 20,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 2000,
