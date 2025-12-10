@@ -350,7 +350,7 @@ export const createCustomer = async (customerData) => {
  */
 export const updateCustomer = async (id, updates) => {
   try {
-    // Transform API field names to database column names
+    // Step 1: Transform API field names to database column names
     const fieldMapping = {
       full_name: "name",
       default: "has_default",
@@ -358,7 +358,13 @@ export const updateCustomer = async (id, updates) => {
       loan: "has_personal_loan",
     };
 
-    // Valid database columns that can be updated
+    const transformedUpdates = {};
+    Object.entries(updates).forEach(([key, value]) => {
+      const dbKey = fieldMapping[key] || key;
+      transformedUpdates[dbKey] = value;
+    });
+
+    // Step 2: Whitelist valid database columns
     const validColumns = [
       "name",
       "balance",
@@ -376,38 +382,37 @@ export const updateCustomer = async (id, updates) => {
       "pdays",
       "previous",
       "poutcome",
+      "email",
+      "phone",
     ];
-
-    const transformedUpdates = {};
-    Object.entries(updates).forEach(([key, value]) => {
-      // Use mapped name if exists, otherwise use original key
-      const dbKey = fieldMapping[key] || key;
-
-      // Only include valid database columns
-      if (validColumns.includes(dbKey)) {
-        transformedUpdates[dbKey] = value;
-      }
-    });
 
     const fields = [];
     const values = [];
     let paramIndex = 1;
 
-    // Build dynamic update query
-    // IMPORTANT: Quote column names to handle reserved keywords
+    // Step 3: Build SET clause safely
     Object.entries(transformedUpdates).forEach(([key, value]) => {
-      if (value !== undefined && key !== "id" && key !== "created_at") {
-        fields.push(`"${key}" = $${paramIndex}`);
+      if (
+        value !== undefined &&
+        key !== "id" &&
+        key !== "created_at" &&
+        key !== "updated_at" &&
+        validColumns.includes(key)
+      ) {
+        fields.push(`${key} = $${paramIndex}`);
         values.push(value);
         paramIndex++;
       }
     });
 
     if (fields.length === 0) {
-      throw new Error("No fields to update");
+      throw new Error("No valid fields to update");
     }
 
+    // Step 4: Add updated_at timestamp
+    fields.push(`updated_at = NOW()`);
     values.push(id);
+
     const query = `
       UPDATE customers
       SET ${fields.join(", ")}

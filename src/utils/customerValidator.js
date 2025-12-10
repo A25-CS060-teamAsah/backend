@@ -36,7 +36,8 @@ const VALID_EDUCATION = [
   "tertiary",
 ];
 
-const VALID_CONTACT = ["cellular", "telephone"];
+// Include "unknown" to stay compatible with legacy/imported data
+const VALID_CONTACT = ["cellular", "telephone", "unknown"];
 
 const VALID_MONTHS = [
   "jan",
@@ -66,88 +67,139 @@ const VALID_POUTCOME = ["failure", "nonexistent", "success", "unknown"];
 export const validateCustomerData = (data, isPartial = false) => {
   const errors = [];
 
+  // Normalize empty strings to undefined for partial updates
+  // so missing fields don't trigger "is required" errors when not provided.
+  const normalizeEmpty = (val) =>
+    isPartial && (val === "" || val === null) ? undefined : val;
+
+  const normalizedData = {
+    ...data,
+    name: normalizeEmpty(data.name),
+    job: normalizeEmpty(data.job),
+    marital: normalizeEmpty(data.marital),
+    education: normalizeEmpty(data.education),
+    contact: normalizeEmpty(data.contact),
+    month: normalizeEmpty(data.month),
+    day_of_week: normalizeEmpty(data.day_of_week),
+    poutcome: normalizeEmpty(data.poutcome),
+  };
+
+  // Use normalized data for validation
+  const d = normalizedData;
+
   // Name validation
-  if (!isPartial || data.name !== undefined) {
-    if (
-      !data.name ||
-      (typeof data.name === "string" && data.name.trim() === "")
-    ) {
+  if (!isPartial) {
+    // For create: name is required
+    if (!d.name || (typeof d.name === "string" && d.name.trim() === "")) {
       errors.push("Name is required");
-    } else if (typeof data.name !== "string") {
+    } else if (typeof d.name !== "string") {
+      errors.push("Name must be a string");
+    }
+  } else if (d.name !== undefined) {
+    // For update: only validate if provided
+    if (d.name === "" || (typeof d.name === "string" && d.name.trim() === "")) {
+      errors.push("Name cannot be empty");
+    } else if (typeof d.name !== "string") {
       errors.push("Name must be a string");
     }
   }
 
   // Age validation
-  if (!isPartial || data.age !== undefined) {
-    if (!data.age) {
+  if (!isPartial) {
+    // For create: age is required
+    if (!d.age) {
       errors.push("Age is required");
-    } else if (
-      typeof data.age !== "number" ||
-      data.age < 18 ||
-      data.age > 100
-    ) {
+    } else if (typeof d.age !== "number" || d.age < 18 || d.age > 100) {
+      errors.push("Age must be a number between 18 and 100");
+    }
+  } else if (d.age !== undefined) {
+    // For update: only validate if provided
+    if (typeof d.age !== "number" || d.age < 18 || d.age > 100) {
       errors.push("Age must be a number between 18 and 100");
     }
   }
 
   // Job validation
-  if (!isPartial || data.job !== undefined) {
-    if (!data.job) {
+  if (!isPartial) {
+    if (!d.job) {
       errors.push("Job is required");
-    } else if (!VALID_JOBS.includes(data.job)) {
+    } else if (!VALID_JOBS.includes(d.job)) {
+      errors.push(`Job must be one of: ${VALID_JOBS.join(", ")}`);
+    }
+  } else if (d.job !== undefined) {
+    if (!VALID_JOBS.includes(d.job)) {
       errors.push(`Job must be one of: ${VALID_JOBS.join(", ")}`);
     }
   }
 
   // Marital validation
-  if (!isPartial || data.marital !== undefined) {
-    if (!data.marital) {
+  if (!isPartial) {
+    if (!d.marital) {
       errors.push("Marital status is required");
-    } else if (!VALID_MARITAL.includes(data.marital)) {
+    } else if (!VALID_MARITAL.includes(d.marital)) {
+      errors.push(`Marital status must be one of: ${VALID_MARITAL.join(", ")}`);
+    }
+  } else if (d.marital !== undefined) {
+    if (!VALID_MARITAL.includes(d.marital)) {
       errors.push(`Marital status must be one of: ${VALID_MARITAL.join(", ")}`);
     }
   }
 
   // Education validation
-  if (!isPartial || data.education !== undefined) {
-    if (!data.education) {
+  if (!isPartial) {
+    if (!d.education) {
       errors.push("Education is required");
-    } else if (!VALID_EDUCATION.includes(data.education)) {
+    } else if (!VALID_EDUCATION.includes(d.education)) {
+      errors.push(`Education must be one of: ${VALID_EDUCATION.join(", ")}`);
+    }
+  } else if (d.education !== undefined) {
+    if (!VALID_EDUCATION.includes(d.education)) {
       errors.push(`Education must be one of: ${VALID_EDUCATION.join(", ")}`);
     }
   }
 
   // Contact validation
-  if (!isPartial || data.contact !== undefined) {
-    if (!data.contact) {
+  if (!isPartial) {
+    if (!d.contact) {
       errors.push("Contact type is required");
-    } else if (!VALID_CONTACT.includes(data.contact)) {
+    } else if (!VALID_CONTACT.includes(d.contact)) {
+      errors.push(`Contact must be one of: ${VALID_CONTACT.join(", ")}`);
+    }
+  } else if (d.contact !== undefined) {
+    if (!VALID_CONTACT.includes(d.contact)) {
       errors.push(`Contact must be one of: ${VALID_CONTACT.join(", ")}`);
     }
   }
 
   // Month validation
-  if (!isPartial || data.month !== undefined) {
-    if (!data.month) {
+  if (!isPartial) {
+    if (!d.month) {
       errors.push("Month is required");
-    } else if (!VALID_MONTHS.includes(data.month)) {
+    } else if (!VALID_MONTHS.includes(d.month)) {
+      errors.push(`Month must be one of: ${VALID_MONTHS.join(", ")}`);
+    }
+  } else if (d.month !== undefined) {
+    if (!VALID_MONTHS.includes(d.month)) {
       errors.push(`Month must be one of: ${VALID_MONTHS.join(", ")}`);
     }
   }
 
   // Day of week validation
-  if (!isPartial || data.day_of_week !== undefined) {
-    if (!data.day_of_week) {
+  if (!isPartial) {
+    if (!d.day_of_week) {
       errors.push("Day of week is required");
-    } else if (!VALID_DAYS.includes(data.day_of_week)) {
+    } else if (!VALID_DAYS.includes(d.day_of_week)) {
+      errors.push(`Day of week must be one of: ${VALID_DAYS.join(", ")}`);
+    }
+  } else if (d.day_of_week !== undefined) {
+    if (!VALID_DAYS.includes(d.day_of_week)) {
       errors.push(`Day of week must be one of: ${VALID_DAYS.join(", ")}`);
     }
   }
 
   // Poutcome validation
-  if (data.poutcome !== undefined && data.poutcome !== null) {
-    if (!VALID_POUTCOME.includes(data.poutcome)) {
+  if (d.poutcome !== undefined && d.poutcome !== null) {
+    if (!VALID_POUTCOME.includes(d.poutcome)) {
       errors.push(
         `Previous outcome must be one of: ${VALID_POUTCOME.join(", ")}`
       );
@@ -227,8 +279,10 @@ export const validateCustomerData = (data, isPartial = false) => {
   }
 
   // Balance validation (optional field)
-  if (data.balance !== undefined && data.balance !== null) {
-    if (typeof data.balance !== "number" || isNaN(data.balance)) {
+  if (data.balance !== undefined && data.balance !== null && data.balance !== "") {
+    // Allow both number and string that can be converted to number
+    const balanceNum = typeof data.balance === "number" ? data.balance : Number(data.balance);
+    if (isNaN(balanceNum)) {
       errors.push("Balance must be a valid number");
     }
   }

@@ -181,32 +181,55 @@ export const updateCustomerHandler = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    // Map 'full_name' to 'name' for database compatibility
-    if (updates.full_name && !updates.name) {
-      updates.name = updates.full_name;
-    }
-    // Remove full_name to avoid sending it to database
-    delete updates.full_name;
-
-    // Validate ID
-    if (!id || isNaN(id)) {
-      return sendError(res, "Invalid customer ID", 400);
+    // Validate ID format
+    const customerId = parseInt(id);
+    if (isNaN(customerId) || customerId <= 0) {
+      return sendError(res, "Invalid customer ID format", 400);
     }
 
     // Check if customer exists
-    const existingCustomer = await getCustomerById(parseInt(id));
+    const existingCustomer = await getCustomerById(customerId);
     if (!existingCustomer) {
       return sendError(res, "Customer not found", 404);
     }
 
-    // Validate update data
-    const validation = validateCustomerData(updates, true); // true = partial validation
+    // Convert numeric fields from string to number if needed
+    const normalizedUpdates = { ...updates };
+    
+    // Convert numeric fields
+    if (normalizedUpdates.age !== undefined && normalizedUpdates.age !== null && normalizedUpdates.age !== "") {
+      normalizedUpdates.age = Number(normalizedUpdates.age);
+    }
+    if (normalizedUpdates.balance !== undefined && normalizedUpdates.balance !== null && normalizedUpdates.balance !== "") {
+      normalizedUpdates.balance = Number(normalizedUpdates.balance);
+    }
+    if (normalizedUpdates.campaign !== undefined && normalizedUpdates.campaign !== null && normalizedUpdates.campaign !== "") {
+      normalizedUpdates.campaign = Number(normalizedUpdates.campaign);
+    }
+    if (normalizedUpdates.pdays !== undefined && normalizedUpdates.pdays !== null && normalizedUpdates.pdays !== "") {
+      normalizedUpdates.pdays = Number(normalizedUpdates.pdays);
+    }
+    if (normalizedUpdates.previous !== undefined && normalizedUpdates.previous !== null && normalizedUpdates.previous !== "") {
+      normalizedUpdates.previous = Number(normalizedUpdates.previous);
+    }
+
+    // Validate update data (partial validation - only validates fields that are present)
+    const validation = validateCustomerData(normalizedUpdates, true);
     if (!validation.isValid) {
       return sendError(res, "Validation failed", 400, validation.errors);
     }
 
-    // Update customer
-    const updatedCustomer = await updateCustomer(parseInt(id), updates);
+    // Remove protected fields that shouldn't be updated
+    delete normalizedUpdates.id;
+    delete normalizedUpdates.created_at;
+    delete normalizedUpdates.updated_at;
+    delete normalizedUpdates.probability_score;
+    delete normalizedUpdates.will_subscribe;
+    delete normalizedUpdates.predicted_at;
+    delete normalizedUpdates.model_version;
+
+    // Update customer (field mapping handled in service layer)
+    const updatedCustomer = await updateCustomer(customerId, normalizedUpdates);
 
     // Clear cache and trigger new prediction (customer data changed)
     deleteCachedPrediction(parseInt(id));
