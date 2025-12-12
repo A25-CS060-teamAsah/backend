@@ -1,6 +1,6 @@
 /* eslint-env node */
-import { sendSuccess, sendError } from "../utils/response.js";
-import { validateCustomerData } from "../utils/customerValidator.js";
+import { sendSuccess, sendError } from '../utils/response.js';
+import { validateCustomerData } from '../utils/customerValidator.js';
 import {
   getAllCustomers,
   countCustomers,
@@ -10,17 +10,17 @@ import {
   deleteCustomer,
   getCustomerStats,
   bulkCreateCustomers,
-} from "../services/customerService.js";
-import { handleDatabaseError } from "../middlewares/errorMiddleware.js";
+} from '../services/customerService.js';
+import { handleDatabaseError } from '../middlewares/errorMiddleware.js';
 import {
   parseAndValidateCSV,
   generateCSVTemplate,
-} from "../utils/csvParser.js";
+} from '../utils/csvParser.js';
 import {
   triggerPredictionForNewCustomer,
   triggerBatchPrediction,
-} from "../services/autoPredictService.js";
-import { deleteCachedPrediction } from "../services/cacheService.js";
+} from '../services/autoPredictService.js';
+import { deleteCachedPrediction } from '../services/cacheService.js';
 
 /**
  * Customer Controller
@@ -37,9 +37,9 @@ export const getAllCustomersHandler = async (req, res) => {
     const {
       page = 1,
       limit = 50,
-      search = "",
-      sortBy = "id",
-      order = "ASC",
+      search = '',
+      sortBy = 'id',
+      order = 'ASC',
       minAge,
       maxAge,
       job,
@@ -100,8 +100,8 @@ export const getAllCustomersHandler = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get all customers error:", error);
-    return sendError(res, "Failed to retrieve customers", 500);
+    console.error('Get all customers error:', error);
+    return sendError(res, 'Failed to retrieve customers', 500);
   }
 };
 
@@ -115,19 +115,19 @@ export const getCustomerByIdHandler = async (req, res) => {
 
     // Validate ID
     if (!id || isNaN(id)) {
-      return sendError(res, "Invalid customer ID", 400);
+      return sendError(res, 'Invalid customer ID', 400);
     }
 
     const customer = await getCustomerById(parseInt(id));
 
     if (!customer) {
-      return sendError(res, "Customer not found", 404);
+      return sendError(res, 'Customer not found', 404);
     }
 
     return sendSuccess(res, customer);
   } catch (error) {
-    console.error("Get customer by ID error:", error);
-    return sendError(res, "Failed to retrieve customer", 500);
+    console.error('Get customer by ID error:', error);
+    return sendError(res, 'Failed to retrieve customer', 500);
   }
 };
 
@@ -149,7 +149,7 @@ export const createCustomerHandler = async (req, res) => {
     // Validate customer data
     const validation = validateCustomerData(customerData);
     if (!validation.isValid) {
-      return sendError(res, "Validation failed", 400, validation.errors);
+      return sendError(res, 'Validation failed', 400, validation.errors);
     }
 
     // Create customer
@@ -158,9 +158,9 @@ export const createCustomerHandler = async (req, res) => {
     // Trigger auto prediction for new customer (non-blocking)
     triggerPredictionForNewCustomer(newCustomer.id);
 
-    return sendSuccess(res, newCustomer, "Customer created successfully", 201);
+    return sendSuccess(res, newCustomer, 'Customer created successfully', 201);
   } catch (error) {
-    console.error("Create customer error:", error);
+    console.error('Create customer error:', error);
 
     // Handle database errors
     if (error.code) {
@@ -168,7 +168,7 @@ export const createCustomerHandler = async (req, res) => {
       return sendError(res, dbError.message, dbError.statusCode);
     }
 
-    return sendError(res, "Failed to create customer", 500);
+    return sendError(res, 'Failed to create customer', 500);
   }
 };
 
@@ -184,39 +184,59 @@ export const updateCustomerHandler = async (req, res) => {
     // Validate ID format
     const customerId = parseInt(id);
     if (isNaN(customerId) || customerId <= 0) {
-      return sendError(res, "Invalid customer ID format", 400);
+      return sendError(res, 'Invalid customer ID format', 400);
     }
 
     // Check if customer exists
     const existingCustomer = await getCustomerById(customerId);
     if (!existingCustomer) {
-      return sendError(res, "Customer not found", 404);
+      return sendError(res, 'Customer not found', 404);
     }
 
     // Convert numeric fields from string to number if needed
     const normalizedUpdates = { ...updates };
-    
+
     // Convert numeric fields
-    if (normalizedUpdates.age !== undefined && normalizedUpdates.age !== null && normalizedUpdates.age !== "") {
+    if (
+      normalizedUpdates.age !== undefined &&
+      normalizedUpdates.age !== null &&
+      normalizedUpdates.age !== ''
+    ) {
       normalizedUpdates.age = Number(normalizedUpdates.age);
     }
-    if (normalizedUpdates.balance !== undefined && normalizedUpdates.balance !== null && normalizedUpdates.balance !== "") {
+    if (
+      normalizedUpdates.balance !== undefined &&
+      normalizedUpdates.balance !== null &&
+      normalizedUpdates.balance !== ''
+    ) {
       normalizedUpdates.balance = Number(normalizedUpdates.balance);
     }
-    if (normalizedUpdates.campaign !== undefined && normalizedUpdates.campaign !== null && normalizedUpdates.campaign !== "") {
+    if (
+      normalizedUpdates.campaign !== undefined &&
+      normalizedUpdates.campaign !== null &&
+      normalizedUpdates.campaign !== ''
+    ) {
       normalizedUpdates.campaign = Number(normalizedUpdates.campaign);
     }
-    if (normalizedUpdates.pdays !== undefined && normalizedUpdates.pdays !== null && normalizedUpdates.pdays !== "") {
+    if (
+      normalizedUpdates.pdays !== undefined &&
+      normalizedUpdates.pdays !== null &&
+      normalizedUpdates.pdays !== ''
+    ) {
       normalizedUpdates.pdays = Number(normalizedUpdates.pdays);
     }
-    if (normalizedUpdates.previous !== undefined && normalizedUpdates.previous !== null && normalizedUpdates.previous !== "") {
+    if (
+      normalizedUpdates.previous !== undefined &&
+      normalizedUpdates.previous !== null &&
+      normalizedUpdates.previous !== ''
+    ) {
       normalizedUpdates.previous = Number(normalizedUpdates.previous);
     }
 
     // Validate update data (partial validation - only validates fields that are present)
     const validation = validateCustomerData(normalizedUpdates, true);
     if (!validation.isValid) {
-      return sendError(res, "Validation failed", 400, validation.errors);
+      return sendError(res, 'Validation failed', 400, validation.errors);
     }
 
     // Remove protected fields that shouldn't be updated
@@ -235,16 +255,16 @@ export const updateCustomerHandler = async (req, res) => {
     deleteCachedPrediction(parseInt(id));
     triggerPredictionForNewCustomer(parseInt(id));
 
-    return sendSuccess(res, updatedCustomer, "Customer updated successfully");
+    return sendSuccess(res, updatedCustomer, 'Customer updated successfully');
   } catch (error) {
-    console.error("Update customer error:", error);
+    console.error('Update customer error:', error);
 
     if (error.code) {
       const dbError = handleDatabaseError(error);
       return sendError(res, dbError.message, dbError.statusCode);
     }
 
-    return sendError(res, "Failed to update customer", 500);
+    return sendError(res, 'Failed to update customer', 500);
   }
 };
 
@@ -258,13 +278,13 @@ export const deleteCustomerHandler = async (req, res) => {
 
     // Validate ID
     if (!id || isNaN(id)) {
-      return sendError(res, "Invalid customer ID", 400);
+      return sendError(res, 'Invalid customer ID', 400);
     }
 
     // Check if customer exists
     const existingCustomer = await getCustomerById(parseInt(id));
     if (!existingCustomer) {
-      return sendError(res, "Customer not found", 404);
+      return sendError(res, 'Customer not found', 404);
     }
 
     // Delete customer (predictions will be cascade deleted)
@@ -273,10 +293,10 @@ export const deleteCustomerHandler = async (req, res) => {
     // Clear cache for deleted customer
     deleteCachedPrediction(parseInt(id));
 
-    return sendSuccess(res, null, "Customer deleted successfully");
+    return sendSuccess(res, null, 'Customer deleted successfully');
   } catch (error) {
-    console.error("Delete customer error:", error);
-    return sendError(res, "Failed to delete customer", 500);
+    console.error('Delete customer error:', error);
+    return sendError(res, 'Failed to delete customer', 500);
   }
 };
 
@@ -287,7 +307,7 @@ export const deleteCustomerHandler = async (req, res) => {
 export const getCustomerStatsHandler = async (req, res) => {
   try {
     const stats = await getCustomerStats();
-    console.log("📊 Raw stats from service:", stats);
+    console.log('📊 Raw stats from service:', stats);
 
     const responseData = {
       totalCustomers: parseInt(stats.total_customers),
@@ -302,15 +322,16 @@ export const getCustomerStatsHandler = async (req, res) => {
         month: item.month,
         total: parseInt(item.total),
         highPriority: parseInt(item.high_priority || 0),
+        willSubscribe: parseInt(item.will_subscribe || 0),
         avgScore: parseFloat(item.avg_score || 0),
       })),
     };
 
-    console.log("📤 Sending response:", responseData);
+    console.log('📤 Sending response:', responseData);
     return sendSuccess(res, responseData);
   } catch (error) {
-    console.error("Get customer stats error:", error);
-    return sendError(res, "Failed to retrieve statistics", 500);
+    console.error('Get customer stats error:', error);
+    return sendError(res, 'Failed to retrieve statistics', 500);
   }
 };
 
@@ -322,11 +343,11 @@ export const uploadCSVHandler = async (req, res) => {
   try {
     // Check if file was uploaded
     if (!req.file) {
-      return sendError(res, "No file uploaded", 400);
+      return sendError(res, 'No file uploaded', 400);
     }
 
     console.log(
-      "📁 CSV Upload - File received:",
+      '📁 CSV Upload - File received:',
       req.file.originalname,
       `(${req.file.size} bytes)`
     );
@@ -335,10 +356,10 @@ export const uploadCSVHandler = async (req, res) => {
     const validationResult = parseAndValidateCSV(req.file.buffer);
 
     if (!validationResult.success) {
-      console.log("❌ CSV Upload - Validation failed:", validationResult.error);
+      console.log('❌ CSV Upload - Validation failed:', validationResult.error);
       return res.status(400).json({
         success: false,
-        error: "CSV Validation Failed",
+        error: 'CSV Validation Failed',
         message: validationResult.error,
       });
     }
@@ -353,8 +374,8 @@ export const uploadCSVHandler = async (req, res) => {
     if (valid.length === 0) {
       return res.status(400).json({
         success: false,
-        error: "No Valid Records",
-        message: "All records in the CSV file are invalid",
+        error: 'No Valid Records',
+        message: 'All records in the CSV file are invalid',
         details: {
           totalRecords,
           validRecords: 0,
@@ -372,11 +393,11 @@ export const uploadCSVHandler = async (req, res) => {
 
     // Log first customer data to check balance
     if (customersToInsert.length > 0) {
-      console.log("🔍 First customer to insert:", {
+      console.log('🔍 First customer to insert:', {
         name: customersToInsert[0].name,
         balance: customersToInsert[0].balance,
         balanceType: typeof customersToInsert[0].balance,
-        hasBalance: "balance" in customersToInsert[0],
+        hasBalance: 'balance' in customersToInsert[0],
         allKeys: Object.keys(customersToInsert[0]),
       });
     }
@@ -403,7 +424,7 @@ export const uploadCSVHandler = async (req, res) => {
     // Prepare response
     const response = {
       success: true,
-      message: "CSV upload processed",
+      message: 'CSV upload processed',
       summary: {
         totalRecordsInFile: totalRecords,
         validRecords: valid.length,
@@ -427,10 +448,10 @@ export const uploadCSVHandler = async (req, res) => {
 
     return res.status(200).json(response);
   } catch (error) {
-    console.error("❌ CSV Upload error:", error);
+    console.error('❌ CSV Upload error:', error);
     return res.status(500).json({
       success: false,
-      error: "CSV Upload Failed",
+      error: 'CSV Upload Failed',
       message: error.message,
     });
   }
@@ -444,15 +465,15 @@ export const downloadCSVTemplateHandler = async (req, res) => {
   try {
     const template = generateCSVTemplate();
 
-    res.setHeader("Content-Type", "text/csv");
+    res.setHeader('Content-Type', 'text/csv');
     res.setHeader(
-      "Content-Disposition",
-      "attachment; filename=customer_import_template.csv"
+      'Content-Disposition',
+      'attachment; filename=customer_import_template.csv'
     );
 
     return res.send(template);
   } catch (error) {
-    console.error("Download template error:", error);
-    return sendError(res, "Failed to generate template", 500);
+    console.error('Download template error:', error);
+    return sendError(res, 'Failed to generate template', 500);
   }
 };

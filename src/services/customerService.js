@@ -499,6 +499,7 @@ export const getCustomerStats = async () => {
         TO_CHAR(c.created_at, 'Mon') as month,
         COUNT(*) as total,
         COUNT(CASE WHEN p.probability_score >= 0.75 THEN 1 END) as high_priority,
+        COUNT(CASE WHEN p.probability_score >= 0.5 THEN 1 END) as will_subscribe,
         AVG(p.probability_score) as avg_score
       FROM customers c
       LEFT JOIN LATERAL (
