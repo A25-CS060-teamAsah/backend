@@ -79,10 +79,13 @@ export const batchPredict = async (customersData) => {
 
     const response = await mlClient.post('/predict/batch', mlPayload);
 
+    // model_version is at the top level of response, not in each prediction
+    const modelVersion = response.data.model_version || '1.0';
+
     return response.data.predictions.map((pred) => ({
       probability: pred.probability,
       willSubscribe: pred.prediction,
-      modelVersion: pred.model_version || '1.0',
+      modelVersion: modelVersion,
       error: pred.error || null,
     }));
   } catch (error) {

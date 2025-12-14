@@ -1,5 +1,5 @@
 /* eslint-env node */
-import pool from "../config/database.js";
+import pool from '../config/database.js';
 
 /**
  * Customer Service - Handles all database operations for customers
@@ -16,9 +16,9 @@ export const getAllCustomers = async (options = {}) => {
     const {
       page = 1,
       limit = 50,
-      search = "",
-      sortBy = "id",
-      order = "ASC",
+      search = '',
+      sortBy = 'id',
+      order = 'ASC',
       minAge,
       maxAge,
       job,
@@ -87,40 +87,40 @@ export const getAllCustomers = async (options = {}) => {
 
     // Add housing loan filter
     if (housing !== undefined) {
-      queryParams.push(housing === "true" || housing === true);
+      queryParams.push(housing === 'true' || housing === true);
       query += ` AND c.has_housing_loan = $${queryParams.length}`;
     }
 
     // Add personal loan filter
     if (loan !== undefined) {
-      queryParams.push(loan === "true" || loan === true);
+      queryParams.push(loan === 'true' || loan === true);
       query += ` AND c.has_personal_loan = $${queryParams.length}`;
     }
 
     // Add default filter
     if (hasDefault !== undefined) {
-      queryParams.push(hasDefault === "true" || hasDefault === true);
+      queryParams.push(hasDefault === 'true' || hasDefault === true);
       query += ` AND c.has_default = $${queryParams.length}`;
     }
 
     // Add sorting
     const validSortColumns = [
-      "id",
-      "age",
-      "job",
-      "education",
-      "created_at",
-      "probability_score",
+      'id',
+      'age',
+      'job',
+      'education',
+      'created_at',
+      'probability_score',
     ];
-    const validOrders = ["ASC", "DESC"];
+    const validOrders = ['ASC', 'DESC'];
 
-    const sortColumn = validSortColumns.includes(sortBy) ? sortBy : "id";
+    const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'id';
     const sortOrder = validOrders.includes(order.toUpperCase())
       ? order.toUpperCase()
-      : "ASC";
+      : 'ASC';
 
     // Handle probability_score sorting (from joined table)
-    if (sortColumn === "probability_score") {
+    if (sortColumn === 'probability_score') {
       query += ` ORDER BY p.${sortColumn} ${sortOrder} NULLS LAST`;
     } else {
       query += ` ORDER BY c.${sortColumn} ${sortOrder}`;
@@ -139,7 +139,7 @@ export const getAllCustomers = async (options = {}) => {
       balance: row.balance || null, // Add balance field (null if not exists)
     }));
   } catch (error) {
-    console.error("Error in getAllCustomers:", error);
+    console.error('Error in getAllCustomers:', error);
     throw error;
   }
 };
@@ -152,7 +152,7 @@ export const getAllCustomers = async (options = {}) => {
 export const countCustomers = async (options = {}) => {
   try {
     const {
-      search = "",
+      search = '',
       minAge,
       maxAge,
       job,
@@ -163,7 +163,7 @@ export const countCustomers = async (options = {}) => {
       marital,
     } = options;
 
-    let query = "SELECT COUNT(*) as total FROM customers WHERE 1=1";
+    let query = 'SELECT COUNT(*) as total FROM customers WHERE 1=1';
     const queryParams = [];
 
     // Add search filter (searches in name, job, education, marital)
@@ -206,26 +206,26 @@ export const countCustomers = async (options = {}) => {
 
     // Add housing loan filter
     if (housing !== undefined) {
-      queryParams.push(housing === "true" || housing === true);
+      queryParams.push(housing === 'true' || housing === true);
       query += ` AND has_housing_loan = $${queryParams.length}`;
     }
 
     // Add personal loan filter
     if (loan !== undefined) {
-      queryParams.push(loan === "true" || loan === true);
+      queryParams.push(loan === 'true' || loan === true);
       query += ` AND has_personal_loan = $${queryParams.length}`;
     }
 
     // Add default filter
     if (hasDefault !== undefined) {
-      queryParams.push(hasDefault === "true" || hasDefault === true);
+      queryParams.push(hasDefault === 'true' || hasDefault === true);
       query += ` AND has_default = $${queryParams.length}`;
     }
 
     const result = await pool.query(query, queryParams);
     return parseInt(result.rows[0].total);
   } catch (error) {
-    console.error("Error in countCustomers:", error);
+    console.error('Error in countCustomers:', error);
     throw error;
   }
 };
@@ -262,7 +262,7 @@ export const getCustomerById = async (id) => {
       balance: row.balance || null,
     };
   } catch (error) {
-    console.error("Error in getCustomerById:", error);
+    console.error('Error in getCustomerById:', error);
     throw error;
   }
 };
@@ -324,7 +324,7 @@ export const createCustomer = async (customerData) => {
       campaign || 1,
       pdays || 999,
       previous || 0,
-      poutcome || "unknown",
+      poutcome || 'unknown',
     ];
 
     const result = await pool.query(query, values);
@@ -337,7 +337,7 @@ export const createCustomer = async (customerData) => {
       balance: row.balance || null,
     };
   } catch (error) {
-    console.error("Error in createCustomer:", error);
+    console.error('Error in createCustomer:', error);
     throw error;
   }
 };
@@ -352,10 +352,10 @@ export const updateCustomer = async (id, updates) => {
   try {
     // Step 1: Transform API field names to database column names
     const fieldMapping = {
-      full_name: "name",
-      default: "has_default",
-      housing: "has_housing_loan",
-      loan: "has_personal_loan",
+      full_name: 'name',
+      default: 'has_default',
+      housing: 'has_housing_loan',
+      loan: 'has_personal_loan',
     };
 
     const transformedUpdates = {};
@@ -366,24 +366,24 @@ export const updateCustomer = async (id, updates) => {
 
     // Step 2: Whitelist valid database columns
     const validColumns = [
-      "name",
-      "balance",
-      "age",
-      "job",
-      "marital",
-      "education",
-      "has_default",
-      "has_housing_loan",
-      "has_personal_loan",
-      "contact",
-      "month",
-      "day_of_week",
-      "campaign",
-      "pdays",
-      "previous",
-      "poutcome",
-      "email",
-      "phone",
+      'name',
+      'balance',
+      'age',
+      'job',
+      'marital',
+      'education',
+      'has_default',
+      'has_housing_loan',
+      'has_personal_loan',
+      'contact',
+      'month',
+      'day_of_week',
+      'campaign',
+      'pdays',
+      'previous',
+      'poutcome',
+      'email',
+      'phone',
     ];
 
     const fields = [];
@@ -394,9 +394,9 @@ export const updateCustomer = async (id, updates) => {
     Object.entries(transformedUpdates).forEach(([key, value]) => {
       if (
         value !== undefined &&
-        key !== "id" &&
-        key !== "created_at" &&
-        key !== "updated_at" &&
+        key !== 'id' &&
+        key !== 'created_at' &&
+        key !== 'updated_at' &&
         validColumns.includes(key)
       ) {
         fields.push(`${key} = $${paramIndex}`);
@@ -406,7 +406,7 @@ export const updateCustomer = async (id, updates) => {
     });
 
     if (fields.length === 0) {
-      throw new Error("No valid fields to update");
+      throw new Error('No valid fields to update');
     }
 
     // Step 4: Add updated_at timestamp
@@ -415,7 +415,7 @@ export const updateCustomer = async (id, updates) => {
 
     const query = `
       UPDATE customers
-      SET ${fields.join(", ")}
+      SET ${fields.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING *
     `;
@@ -432,7 +432,7 @@ export const updateCustomer = async (id, updates) => {
       balance: row.balance || null,
     };
   } catch (error) {
-    console.error("Error in updateCustomer:", error);
+    console.error('Error in updateCustomer:', error);
     throw error;
   }
 };
@@ -444,11 +444,11 @@ export const updateCustomer = async (id, updates) => {
  */
 export const deleteCustomer = async (id) => {
   try {
-    const query = "DELETE FROM customers WHERE id = $1 RETURNING *";
+    const query = 'DELETE FROM customers WHERE id = $1 RETURNING *';
     const result = await pool.query(query, [id]);
     return result.rows.length > 0;
   } catch (error) {
-    console.error("Error in deleteCustomer:", error);
+    console.error('Error in deleteCustomer:', error);
     throw error;
   }
 };
@@ -471,7 +471,7 @@ export const getCustomersWithoutPredictions = async (limit = 100) => {
     const result = await pool.query(query, [limit]);
     return result.rows;
   } catch (error) {
-    console.error("Error in getCustomersWithoutPredictions:", error);
+    console.error('Error in getCustomersWithoutPredictions:', error);
     throw error;
   }
 };
@@ -543,7 +543,7 @@ export const getCustomerStats = async () => {
       monthly_conversions: parseInt(pendingResult.rows[0].monthly_conversions),
     };
   } catch (error) {
-    console.error("Error in getCustomerStats:", error);
+    console.error('Error in getCustomerStats:', error);
     throw error;
   }
 };
@@ -563,7 +563,7 @@ export const bulkCreateCustomers = async (customers) => {
   };
 
   try {
-    await client.query("BEGIN");
+    await client.query('BEGIN');
 
     for (let i = 0; i < customers.length; i++) {
       const customer = customers[i];
@@ -586,7 +586,7 @@ export const bulkCreateCustomers = async (customers) => {
           customer.balance !== undefined &&
           customer.balance !== null &&
           !isNaN(customer.balance) &&
-          customer.balance !== ""
+          customer.balance !== ''
             ? Number(customer.balance)
             : 0;
 
@@ -595,7 +595,7 @@ export const bulkCreateCustomers = async (customers) => {
           balanceValue === 0 &&
           originalBalance !== undefined &&
           originalBalance !== null &&
-          originalBalance !== "" &&
+          originalBalance !== '' &&
           originalBalance !== 0
         ) {
           console.warn(
@@ -609,7 +609,7 @@ export const bulkCreateCustomers = async (customers) => {
         if (i < 3) {
           console.log(`💾 Inserting customer ${i + 1}:`, {
             name: customer.name,
-            hasBalance: "balance" in customer,
+            hasBalance: 'balance' in customer,
             balance: customer.balance,
             balanceValue: balanceValue,
             balanceType: typeof customer.balance,
@@ -664,11 +664,11 @@ export const bulkCreateCustomers = async (customers) => {
       }
     }
 
-    await client.query("COMMIT");
+    await client.query('COMMIT');
     return results;
   } catch (error) {
-    await client.query("ROLLBACK");
-    console.error("Error in bulkCreateCustomers:", error);
+    await client.query('ROLLBACK');
+    console.error('Error in bulkCreateCustomers:', error);
     throw error;
   } finally {
     client.release();
